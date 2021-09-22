@@ -1,8 +1,10 @@
-import EventEmitter from "node:events";
 import { Worker } from "node:worker_threads";
+import ModuleCommParser from "./base";
 
-export class Worker_ModuleCommParser extends EventEmitter {
+export class Worker_ModuleCommParser extends ModuleCommParser {
     worker: Worker;
+    killed = false;
+
     constructor(worker: Worker) {
         super();
         this.worker = worker;
@@ -13,6 +15,12 @@ export class Worker_ModuleCommParser extends EventEmitter {
     }
 
     send(data: any) {
-        this.worker.postMessage(data);
+        if (!this.killed)
+            this.worker.postMessage(data);
+    }
+
+    kill() {
+        this.worker.terminate();
+        this.killed = true;
     }
 }

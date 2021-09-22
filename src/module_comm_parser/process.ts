@@ -1,8 +1,10 @@
-import EventEmitter from "node:events";
 import { ChildProcess } from "node:child_process";
+import ModuleCommParser from "./base";
 
-export class Process_ModuleCommParser extends EventEmitter {
+export class Process_ModuleCommParser extends ModuleCommParser {
     process: ChildProcess;
+    killed = false;
+
     constructor(process: ChildProcess) {
         super();
         this.process = process;
@@ -13,6 +15,12 @@ export class Process_ModuleCommParser extends EventEmitter {
     }
 
     send(data: any) {
-        this.process.send(data);
+        if (!this.killed)
+            this.process.send(data);
+    }
+
+    kill() {
+        this.process.kill("SIGTERM");
+        this.killed = true;
     }
 }
