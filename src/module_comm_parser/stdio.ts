@@ -34,7 +34,7 @@ export class STDIO_ModuleCommParser extends ModuleCommParser {
                             continue;
                         } else {
                             this.msgLengthFinal = -1;
-                            this.emit("message", msgpack5().decode(Buffer.from(this.msgBuffer)));
+                            this.emit("message", msgpack.decode(Buffer.from(this.msgBuffer)));
                             this.msgBuffer = [];
                             this.msgReading = 0;
                         }
