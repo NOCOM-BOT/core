@@ -12,13 +12,21 @@ export default class NCBCore {
     starting = false;
     running = false;
 
+    logger;
     profile_directory!: string;
     config: ConfigInterface = {};
     module: { [id: string]: NCBModule } = {};
     unassignedModuleID = 1;
 
-    constructor(profile_directory: string) {
-        this.profile_directory = profile_directory || process.cwd();        
+    constructor(profile_directory: string, logger: {
+        debug: (...data: any) => void,
+        info: (...data: any) => void,
+        warn: (...data: any) => void,
+        error: (...data: any) => void,
+        critical: (...data: any) => void
+    }) {
+        this.profile_directory = profile_directory || process.cwd();
+        this.logger = logger;
     }
 
     async start() {
@@ -67,9 +75,39 @@ export default class NCBCore {
 
     async initializeModules() {
         let mod = await this.scanModules();
+        let c = [];
         for (let mDir of mod) {
-            this.module[(this.unassignedModuleID++).toString()] = new NCBModule(mDir);
+            let assignedID = this.unassignedModuleID++;
+
+            let m = this.module[assignedID.toString()] =
+                new NCBModule(
+                    this,
+                    mDir,
+                    path.join(this.profile_directory, "temp", this.runInstanceID, `plugin-${assignedID}`),
+                    assignedID.toString()
+                );
+            c.push(m);
+
+            try {
+                await m.readInfo();
+            } catch (e) {
+                this.logger.error(`An error occurred while trying to assign module ID ${assignedID} = ${mDir}:`, e);
+            }
         }
+
+        await Promise.allSettled(c.map(async x => {
+            try {
+                await x.start();
+            } catch (e) {
+                this.logger.error(
+                    `An error occurred while trying to start module ID ${
+                        x.moduleID
+                    } = ${x.moduleDir} (at ${x.tempDataDir}):`,
+                    e
+                );
+                throw e;
+            }
+        }));
     }
 
     async killModules() {
@@ -91,6 +129,6 @@ export default class NCBCore {
     async clearTemp() {
         try {
             await fs.rm(path.join(this.profile_directory, "temp", this.runInstanceID), { recursive: true });
-        } catch {}
+        } catch { }
     }
 }
