@@ -3,10 +3,15 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { ConfigInterface } from "./interface";
 import NCBModule from "./module";
+import NCBCoreModule from "./core_module";
+
+import * as coreJSON from "../package.json";
 
 const defaultCfg = {};
 
 export default class NCBCore {
+    static kernelVersion = coreJSON.version;
+
     runInstanceID = "00000000000000000000000000000000";
 
     starting = false;
@@ -15,7 +20,9 @@ export default class NCBCore {
     logger;
     profile_directory!: string;
     config: ConfigInterface = {};
-    module: { [id: string]: NCBModule } = {};
+    module: {
+        [id: string]: NCBCoreModule | NCBModule
+    } = {};
     unassignedModuleID = 1;
 
     constructor(profile_directory: string, logger: {
@@ -74,6 +81,8 @@ export default class NCBCore {
     }
 
     async initializeModules() {
+        this.module.core = new NCBCoreModule(this);
+
         let mod = await this.scanModules();
         let c = [];
         for (let mDir of mod) {

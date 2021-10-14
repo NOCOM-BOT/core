@@ -68,6 +68,17 @@ export default class NCBModule extends EventEmitter {
         }
     }
 
+    async startPackage() {
+        switch (this.communicationProtocol) {
+            case "msgpack":
+            case "node_ipc":
+            case "node_worker":
+                throw new Error("Not implemented.");
+            default:
+                throw new Error(`Unknown module communication protocol "${this.communicationProtocol}"`);
+        }
+    }
+
     async startScript() {
         switch (this.communicationProtocol) {
             case "msgpack":
