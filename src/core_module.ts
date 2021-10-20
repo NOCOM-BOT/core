@@ -30,6 +30,7 @@ export default class NCBCoreModule {
 
                 let senderModule = this.core.module[data.call_from] as any as NCBModule;
                 let returnData = null;
+                let exist = true;
 
                 switch (data.call_cmd) {
                     case "get_registered_modules":
@@ -108,7 +109,20 @@ export default class NCBCoreModule {
                                 returnData = { hasSubscribers: false };
                             }
                         }
+                        break;
+                    
+                    default:
+                        exist = false;
                 }
+
+                senderModule.queueMessage({
+                    type: "api_response",
+                    response_from: "core",
+                    exist,
+                    data: returnData,
+                    error: null,
+                    nonce: data.nonce
+                });
             }
         })();
     }
