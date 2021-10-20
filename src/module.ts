@@ -23,6 +23,8 @@ export default class NCBModule extends EventEmitter {
     autoRestart: boolean = false;
     json: any;
 
+    displayName: string = "";
+
     starting = false;
     started = false;
 
@@ -135,7 +137,12 @@ export default class NCBModule extends EventEmitter {
                         }, 30000);
 
 
-                        let rh: Function, rjh: Function, handshakePromise = new Promise((r, rj) => { rh = r; rjh = rj });
+                        let rh: Function, rjh: Function, handshakePromise = new Promise<{
+                            type: string,
+                            module: string,
+                            module_displayname: string,
+                            module_shortname: string
+                        }>((r, rj) => { rh = r; rjh = rj });
                         this.communicator.on("message", data => {
                             if (typeof data === "object") {
                                 switch (data.type) {
@@ -180,12 +187,23 @@ export default class NCBModule extends EventEmitter {
                             protocol_version: "1"
                         });
 
-                        await Promise.race([
+                        let d = await Promise.race([
                             handshakePromise,
-                            new Promise((_, r) => {
+                            new Promise<never>((_, r) => {
                                 setTimeout(r, 30000, "Module didn't respond to handshake in 30 seconds.")
                             })
                         ]);
+
+                        // Strict shortname checking
+                        if (typeof d === "object" && d) {
+                            if (d.module_shortname === this.shortName) {
+                                this.displayName = d.module_displayname;
+                            } else {
+                                throw new Error("Module shortname mismatch JSON definition.");
+                            }
+                        } else {
+                            throw new Error("Invalid handshake response.");
+                        }
                     });
 
                     return ex();
