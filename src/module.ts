@@ -8,6 +8,92 @@ import NCBCore from ".";
 import ModuleCommParser from "./module_comm_parser/base";
 import { Worker_ModuleCommParser } from "./module_comm_parser/worker";
 
+interface HandshakeResponseFail {
+    type: "handshake_fail",
+    error: string | number | null
+}
+
+interface HandshakeResponseSuccess {
+    type: "handshake_success",
+    module: string,
+    module_displayname: string,
+    module_shortname: string
+}
+
+async function handshake(communicator: ModuleCommParser, moduleID: string) {
+    let stopTimer: Function, stopTimerFail: Function, promise = Promise.race([
+        new Promise<HandshakeResponseSuccess>(s => stopTimer = s),
+        new Promise<never>((_, c) => {
+            stopTimerFail = c;
+            setTimeout(c, 30000, {
+                type: "handshake_fail",
+                error: "Timed out (no response after 30s)."
+            });
+        })
+    ]);
+
+    function handleHandshake(data: HandshakeResponseFail | HandshakeResponseSuccess) {
+        if (typeof data === "object") {
+            if (data.type === "handshake_success") {
+                stopTimer(data);
+            } else if (data.type === "handshake_fail") {
+                stopTimerFail(data);
+            }
+        } else {
+            stopTimerFail({
+                type: "handshake_fail",
+                error: "Invalid handshake response."
+            })
+        }
+    }
+
+    communicator.once("message", handleHandshake);
+
+    communicator.send({
+        type: "handshake",
+        id: moduleID,
+        protocol_version: "1"
+    });
+
+    return promise;
+}
+
+async function invokeChallenge(communicator: ModuleCommParser, failCallback: Function) {
+    let challenge = crypto.randomBytes(128).toString("base64");
+    let stopTimer: Function, promise = Promise.race([
+        new Promise<void>(s => stopTimer = s),
+        new Promise<never>((_, c) => setTimeout(c, 30000))
+    ]);
+
+    function handleChallenge(data: {
+        type: "challenge_response",
+        challenge: string
+    }) {
+        if (
+            typeof data === "object" &&
+            data.type === "challenge_response" &&
+            data.challenge === challenge
+        ) {
+            stopTimer();
+        }
+    }
+
+    communicator.on("message", handleChallenge);
+
+    communicator.send({
+        type: "challenge",
+        challenge
+    });
+
+    try {
+        await promise;
+    } catch {
+        failCallback();
+    }
+
+    communicator.removeListener("message", handleChallenge);
+}
+
 export default class NCBModule extends EventEmitter {
     core: NCBCore;
 
@@ -42,6 +128,99 @@ export default class NCBModule extends EventEmitter {
         this.zip = new AdmZip(this.moduleDir);
     }
 
+    async _handleWorker(worker: Worker, ex: Function) {
+        worker.on("error", e => {
+            if (this.autoRestart) {
+                this.core.logger.warn(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, e);
+                (this.communicator?.kill ?? worker.terminate)();
+                this.communicator?.removeAllListeners();
+                delete this.communicator;
+                this.starting = true;
+                this.started = false;
+                ex();
+            } else {
+                this.core.logger.error(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, e);
+                (this.communicator?.kill ?? worker.terminate)();
+                this.communicator?.removeAllListeners();
+                delete this.communicator;
+                this.starting = this.started = false;
+            }
+        });
+        this.communicator = new Worker_ModuleCommParser(worker);
+    
+        let abortChallengeClock = new AbortController();
+        (async () => {
+            for (; ;) {
+                // Issuing a new challenge every 30-60s
+                await new Promise(r => setTimeout(r, Math.round(Math.random() * 30000) + 30000));
+                if (!abortChallengeClock.signal.aborted && this.communicator) {
+                    await invokeChallenge(this.communicator, () => {
+                        if (this.autoRestart) {
+                            this.core.logger.warn(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and is now restarting...`);
+                            this.communicator?.kill();
+                            this.communicator?.removeAllListeners();
+                            delete this.communicator;
+                            this.starting = true;
+                            this.started = false;
+                            ex();
+                        } else {
+                            this.core.logger.error(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and has been terminated.`);
+                            this.communicator?.kill();
+                            this.communicator?.removeAllListeners();
+                            delete this.communicator;
+                            this.starting = this.started = false;
+                        }
+                    });
+                }
+            }
+        })();
+    
+        this.communicator.on("message", data => {
+            if (typeof data === "object") {
+                switch (data.type) {
+                    case "api_send":
+                        this.core.module[data.call_to].queueMessage({
+                            type: "api_call",
+                            call_from: this.moduleID,
+                            call_cmd: data.call_cmd,
+                            data: data.data,
+                            nonce: data.nonce
+                        });
+                        break;
+                    case "api_sendresponse":
+                        this.core.module[data.response_to].queueMessage({
+                            type: "api_response",
+                            response_from: this.moduleID,
+                            exist: data.exist,
+                            data: data.data,
+                            error: data.error,
+                            nonce: data.nonce
+                        });
+                        break;
+                }
+            }
+    
+            this.emit("message", data);
+        });
+    
+        // Sending handshake
+        try {
+            let d = await handshake(this.communicator, this.moduleID);
+    
+            if (d.module_shortname === this.shortName) {
+                this.displayName = d.module_displayname;
+            } else {
+                throw {
+                    type: "handshake_fail",
+                    error: "Mismatched shortname."
+                }
+            }
+        } catch (e: any) {
+            this.core.logger.error(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) failed to complete handshake:`, e?.error || e);
+            throw e;
+        }
+    }
+
     async start() {
         if (!this.starting && !this.started) {
             this.starting = true;
@@ -70,12 +249,30 @@ export default class NCBModule extends EventEmitter {
         }
     }
 
+
+
     async startPackage() {
         switch (this.communicationProtocol) {
             case "msgpack":
             case "node_ipc":
-            case "node_worker":
                 throw new Error("Not implemented.");
+            case "node_worker":
+                {
+                    let ex = (async () => {
+                        let worker = new Worker(`
+                           require("${path.relative(__dirname, this.moduleDir)}");
+                        `, {
+                            eval: true,
+                            stderr: false,
+                            stdin: false,
+                            stdout: false
+                        });
+
+                        await this._handleWorker(worker, ex);
+                    });
+
+                    return ex();
+                }
             default:
                 throw new Error(`Unknown module communication protocol "${this.communicationProtocol}"`);
         }
@@ -100,110 +297,7 @@ export default class NCBModule extends EventEmitter {
                             stdout: false
                         });
 
-                        worker.on("error", e => {
-                            if (this.autoRestart) {
-                                this.core.logger.warn(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, e);
-                                worker.terminate();
-                                ex();
-                            } else {
-                                this.core.logger.error(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, e);
-                                worker.terminate();
-                            }
-                        });
-                        this.communicator = new Worker_ModuleCommParser(worker);
-
-                        let lastChallengeCode = "";
-                        let chal = setInterval(() => {
-                            if (lastChallengeCode === "") {
-                                lastChallengeCode = crypto.randomBytes(128).toString("base64");
-                                if (this.communicator) {
-                                    this.communicator.send({
-                                        type: "challenge",
-                                        challenge: lastChallengeCode
-                                    });
-                                }
-                            } else {
-                                // Challenge failed: not responding in 30 seconds.
-                                clearInterval(chal);
-                                if (this.autoRestart) {
-                                    this.core.logger.warn(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and is now restarting...`);
-                                    worker.terminate();
-                                    ex();
-                                } else {
-                                    this.core.logger.error(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and has been terminated.`);
-                                    worker.terminate();
-                                }
-                            }
-                        }, 30000);
-
-
-                        let rh: Function, rjh: Function, handshakePromise = new Promise<{
-                            type: string,
-                            module: string,
-                            module_displayname: string,
-                            module_shortname: string
-                        }>((r, rj) => { rh = r; rjh = rj });
-                        this.communicator.on("message", data => {
-                            if (typeof data === "object") {
-                                switch (data.type) {
-                                    case "handshake_success":
-                                        return rh(data);
-                                    case "handshake_fail":
-                                        return rjh(data);
-                                    case "challenge_response":
-                                        if (data.challenge === lastChallengeCode) {
-                                            lastChallengeCode = "";
-                                        }
-                                        break;
-                                    case "api_send":
-                                        this.core.module[data.call_to].queueMessage({
-                                            type: "api_call",
-                                            call_from: this.moduleID,
-                                            call_cmd: data.call_cmd,
-                                            data: data.data,
-                                            nonce: data.nonce
-                                        });
-                                        break;
-                                    case "api_sendresponse":
-                                        this.core.module[data.response_to].queueMessage({
-                                            type: "api_response",
-                                            response_from: this.moduleID,
-                                            exist: data.exist,
-                                            data: data.data,
-                                            error: data.error,
-                                            nonce: data.nonce
-                                        });
-                                        break;
-                                }
-                            }
-
-                            this.emit("message", data);
-                        });
-
-                        // Sending handshake
-                        this.communicator.send({
-                            type: "handshake",
-                            id: this.moduleID,
-                            protocol_version: "1"
-                        });
-
-                        let d = await Promise.race([
-                            handshakePromise,
-                            new Promise<never>((_, r) => {
-                                setTimeout(r, 30000, "Module didn't respond to handshake in 30 seconds.")
-                            })
-                        ]);
-
-                        // Strict shortname checking
-                        if (typeof d === "object" && d) {
-                            if (d.module_shortname === this.shortName) {
-                                this.displayName = d.module_displayname;
-                            } else {
-                                throw new Error("Module shortname mismatch JSON definition.");
-                            }
-                        } else {
-                            throw new Error("Invalid handshake response.");
-                        }
+                        await this._handleWorker(worker, ex);
                     });
 
                     return ex();
