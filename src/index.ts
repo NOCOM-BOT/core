@@ -1,16 +1,15 @@
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { ConfigInterface } from "./interface";
-import NCBModule from "./module";
-import NCBCoreModule from "./core_module";
-
-import * as coreJSON from "../package.json";
+import { ConfigInterface } from "./interface.js";
+import NCBModule from "./module.js";
+import NCBCoreModule from "./core_module.js";
 
 const defaultCfg = {};
 
 export default class NCBCore {
-    static kernelVersion = coreJSON.version;
+    static kernelVersion = JSON.parse(fsSync.readFileSync("package.json", { encoding: "utf8" })).version;
 
     runInstanceID = "00000000000000000000000000000000";
 
@@ -40,6 +39,7 @@ export default class NCBCore {
         if (!this.starting && !this.running) {
             this.starting = true;
             this.runInstanceID = crypto.randomBytes(16).toString("hex");
+            await this.ensureProfileDir();
             await this.loadConfig();
             await this.createTemp();
 
@@ -58,9 +58,20 @@ export default class NCBCore {
         }
     }
 
+    async ensureProfileDir() {
+        try {
+            await fs.mkdir(path.join(this.profile_directory, "temp", this.runInstanceID), { recursive: true });
+        } catch { }
+    }
+
     async loadConfig() {
-        let cfg = JSON.parse(await fs.readFile(path.join(this.profile_directory, "config.json"), { encoding: "utf8" }));
-        this.config = await this.applyDefault(cfg, defaultCfg);
+        try {
+            let cfg = JSON.parse(await fs.readFile(path.join(this.profile_directory, "config.json"), { encoding: "utf8" }));
+            this.config = await this.applyDefault(cfg, defaultCfg);
+        } catch {
+            this.config = await this.applyDefault({}, defaultCfg);
+            await fs.writeFile(path.join(this.profile_directory, "config.json"), JSON.stringify(this.config, null, "\t"));
+        }
     }
 
     async applyDefault(config: ConfigInterface, defaultConfig: ConfigInterface) {
@@ -109,8 +120,7 @@ export default class NCBCore {
                 await x.start();
             } catch (e) {
                 this.logger.error(
-                    `An error occurred while trying to start module ID ${
-                        x.moduleID
+                    `An error occurred while trying to start module ID ${x.moduleID
                     } = ${x.moduleDir} (at ${x.tempDataDir}):`,
                     e
                 );

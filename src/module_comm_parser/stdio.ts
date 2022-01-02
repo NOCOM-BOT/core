@@ -1,5 +1,5 @@
 import { ChildProcessWithoutNullStreams } from "node:child_process";
-import ModuleCommParser from "./base";
+import ModuleCommParser from "./base.js";
 import msgpack5 from "msgpack5";
 import { promisify } from "node:util";
 

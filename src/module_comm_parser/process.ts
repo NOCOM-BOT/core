@@ -1,5 +1,5 @@
 import { ChildProcess } from "node:child_process";
-import ModuleCommParser from "./base";
+import ModuleCommParser from "./base.js";
 
 export class Process_ModuleCommParser extends ModuleCommParser {
     process: ChildProcess;

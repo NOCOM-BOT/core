@@ -1,5 +1,5 @@
 import { Worker } from "node:worker_threads";
-import ModuleCommParser from "./base";
+import ModuleCommParser from "./base.js";
 
 export class Worker_ModuleCommParser extends ModuleCommParser {
     worker: Worker;

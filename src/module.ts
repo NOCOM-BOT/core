@@ -4,9 +4,9 @@ import { promisify } from "node:util";
 import { Worker } from "node:worker_threads";
 import EventEmitter from "node:events";
 import crypto from "node:crypto";
-import NCBCore from ".";
-import ModuleCommParser from "./module_comm_parser/base";
-import { Worker_ModuleCommParser } from "./module_comm_parser/worker";
+import NCBCore from "./index.js";
+import ModuleCommParser from "./module_comm_parser/base.js";
+import { Worker_ModuleCommParser } from "./module_comm_parser/worker.js";
 
 interface HandshakeResponseFail {
     type: "handshake_fail",
