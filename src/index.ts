@@ -5,8 +5,46 @@ import crypto from "node:crypto";
 import { ConfigInterface } from "./interface.js";
 import NCBModule from "./module.js";
 import NCBCoreModule from "./core_module.js";
+import EventEmitter from "node:events";
 
 const defaultCfg = {};
+
+class SignalChannel extends EventEmitter {}
+class PromptChannel extends EventEmitter {
+    promptList: {
+        [nonceID: string]: {
+            promptInfo: string,
+            promptType: "string" | "yes-no",
+            defaultValue?: string | boolean,
+            callback: Function
+        }
+    } = {}
+
+    reset() {
+        this.promptList = {};
+    }
+
+    async prompt(type: "string" | "yes-no", promptInfo: string, defaultValue?: string | boolean) {
+        // Generate random nonce ID
+        let nonceID = crypto.randomBytes(64).toString("hex");
+        let callback: (rt: string | boolean) => void = () => {};
+        let promise = new Promise<string|boolean>(r => callback = r);
+
+        this.promptList[nonceID] = {
+            promptInfo,
+            promptType: type,
+            defaultValue,
+            callback
+        }
+
+        this.emit("prompt", nonceID);
+
+        return promise.then(v => {
+            delete this.promptList[nonceID];
+            return v;
+        });
+    }
+}
 
 export default class NCBCore {
     static kernelVersion = JSON.parse(fsSync.readFileSync("package.json", { encoding: "utf8" })).version;
@@ -23,6 +61,20 @@ export default class NCBCore {
         [id: string]: NCBCoreModule | NCBModule
     } = {};
     unassignedModuleID = 1;
+    tempData: {
+        [key: string]: any,
+        plReg: {
+            [namespace: string]: {
+                pluginName: string,
+                version: string,
+                author: string
+            }
+        }
+    } = {
+        plReg: {}
+    };
+    promptChannel = new PromptChannel();
+    signalChannel = new SignalChannel();
 
     constructor(profile_directory: string, logger: {
         debug: (...data: any) => void,
@@ -111,15 +163,22 @@ export default class NCBCore {
             try {
                 await m.readInfo();
             } catch (e) {
-                this.logger.error(`An error occurred while trying to assign module ID ${assignedID} = ${mDir}:`, e);
+                this.logger.error("core", `An error occurred while trying to assign module ID ${assignedID} = ${mDir}:`, e);
+                c.pop();
+                delete this.module[assignedID.toString()];
             }
         }
 
-        await Promise.allSettled(c.map(async x => {
+        return Promise.allSettled(c.map(async x => {
             try {
                 await x.start();
+                this.signalChannel.emit("plugin_load", {
+                    id: x.moduleID,
+                    namespace: x.namespace
+                })
             } catch (e) {
                 this.logger.error(
+                    "core",
                     `An error occurred while trying to start module ID ${x.moduleID
                     } = ${x.moduleDir} (at ${x.tempDataDir}):`,
                     e

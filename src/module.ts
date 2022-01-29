@@ -17,7 +17,7 @@ interface HandshakeResponseSuccess {
     type: "handshake_success",
     module: string,
     module_displayname: string,
-    module_shortname: string
+    module_namespace: string
 }
 
 async function handshake(communicator: ModuleCommParser, moduleID: string) {
@@ -104,7 +104,7 @@ export default class NCBModule extends EventEmitter {
     zip: AdmZip;
 
     type: string = "unknown";
-    shortName: string = "";
+    namespace: string = "";
     communicationProtocol: string = "unknown";
     autoRestart: boolean = false;
     json: any;
@@ -207,12 +207,12 @@ export default class NCBModule extends EventEmitter {
         try {
             let d = await handshake(this.communicator, this.moduleID);
     
-            if (d.module_shortname === this.shortName) {
+            if (d.module_namespace === this.namespace) {
                 this.displayName = d.module_displayname;
             } else {
                 throw {
                     type: "handshake_fail",
-                    error: "Mismatched shortname."
+                    error: "Mismatched namespace."
                 }
             }
         } catch (e: any) {
@@ -320,12 +320,12 @@ export default class NCBModule extends EventEmitter {
         let moduleObj = JSON.parse(jsonString);
 
         this.json = moduleObj;
-        this.shortName = moduleObj.shortName;
+        this.namespace = moduleObj.namespace;
         this.autoRestart = moduleObj.autoRestart;
         this.type = moduleObj.type;
         this.communicationProtocol = moduleObj.communicationProtocol;
 
-        if (!(this.shortName && this.autoRestart && this.type && this.communicationProtocol)) {
+        if (!(this.namespace && this.autoRestart && this.type && this.communicationProtocol)) {
             throw new Error("Missing required values in module.json");
         }
     }
