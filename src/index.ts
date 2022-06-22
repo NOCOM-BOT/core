@@ -7,6 +7,8 @@ import NCBModule from "./module.js";
 import NCBCoreModule from "./core_module.js";
 import EventEmitter from "node:events";
 
+import packageJSON from "../package.json" assert { type: "json" };
+
 const defaultCfg = {};
 
 class SignalChannel extends EventEmitter {}
@@ -47,7 +49,7 @@ class PromptChannel extends EventEmitter {
 }
 
 export default class NCBCore {
-    static kernelVersion = JSON.parse(fsSync.readFileSync("package.json", { encoding: "utf8" })).version;
+    static kernelVersion = packageJSON.version;
 
     runInstanceID = "00000000000000000000000000000000";
 

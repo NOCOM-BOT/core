@@ -1,10 +1,11 @@
 {
     "extends": "@tsconfig/node18/tsconfig.json",
     "compilerOptions": {
-        "module": "es2022",
+        "module": "esnext",
         "target": "es2021",
         "moduleResolution": "Node",
-        "outDir": "dist"
+        "outDir": "dist",
+        "resolveJsonModule": true
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "**/*.spec.ts"]
