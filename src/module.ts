@@ -148,7 +148,7 @@ export default class NCBModule extends EventEmitter {
                 this.starting = this.started = false;
             }
         });
-        this.communicator = new Worker_ModuleCommParser(worker, this.core, `module.${this.moduleID}`);
+        this.communicator = new Worker_ModuleCommParser(worker);
     
         let abortChallengeClock = new AbortController();
         (async () => {

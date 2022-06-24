@@ -84,6 +84,7 @@ export default class NCBCore {
     signalChannel = new SignalChannel();
 
     constructor(profile_directory: string, logger: {
+        verbose: (...data: any) => void,
         debug: (...data: any) => void,
         info: (...data: any) => void,
         warn: (...data: any) => void,
