@@ -1,4 +1,4 @@
-import NCBCore from ".";
+import type NCBCore from ".";
 import NCBModule from "./module";
 
 export default class NCBCoreModule {

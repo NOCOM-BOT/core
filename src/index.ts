@@ -9,7 +9,12 @@ import EventEmitter from "node:events";
 
 import packageJSON from "../package.json" assert { type: "json" };
 
-const defaultCfg = {};
+const defaultCfg: ConfigInterface = {
+    listener: [],
+    databases: [],
+    defaultDatabase: 0,
+    moduleConfig: {}
+};
 
 class SignalChannel extends EventEmitter {}
 class PromptChannel extends EventEmitter {
@@ -138,6 +143,9 @@ export default class NCBCore {
     async scanModules() {
         try {
             let b = path.join(this.profile_directory, "modules");
+            if (!fsSync.existsSync(b)) {
+                await fs.mkdir(b, { recursive: true });
+            }
             let dir = await fs.readdir(b, { withFileTypes: true, encoding: "utf8" });
             return dir.filter(f => f.isFile() && path.parse(f.name).ext === ".zip").map(f => path.join(b, f.name));
         } catch {
@@ -157,7 +165,7 @@ export default class NCBCore {
                 new NCBModule(
                     this,
                     mDir,
-                    path.join(this.profile_directory, "temp", this.runInstanceID, `plugin-${assignedID}`),
+                    path.join(this.profile_directory, "temp", this.runInstanceID, `tmodule-${assignedID}`),
                     assignedID.toString()
                 );
             c.push(m);
@@ -177,7 +185,8 @@ export default class NCBCore {
                 this.signalChannel.emit("plugin_load", {
                     id: x.moduleID,
                     namespace: x.namespace
-                })
+                });
+                this.logger.info(`core[${x.namespace}]`, `Module ${x.moduleID} (${x.displayName}) loaded.`);
             } catch (e) {
                 this.logger.error(
                     "core",

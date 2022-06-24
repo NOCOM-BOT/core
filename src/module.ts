@@ -7,6 +7,8 @@ import crypto from "node:crypto";
 import NCBCore from "./index.js";
 import ModuleCommParser from "./module_comm_parser/base.js";
 import { Worker_ModuleCommParser } from "./module_comm_parser/worker.js";
+import url from "node:url";
+import fs from "node:fs/promises";
 
 interface HandshakeResponseFail {
     type: "handshake_fail",
@@ -131,22 +133,22 @@ export default class NCBModule extends EventEmitter {
     async _handleWorker(worker: Worker, ex: Function) {
         worker.on("error", e => {
             if (this.autoRestart) {
-                this.core.logger.warn(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, e);
-                (this.communicator?.kill ?? worker.terminate)();
+                this.core.logger.warn(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, e);
+                (this.communicator?.kill?.bind?.(this.communicator) ?? worker.terminate.bind(worker))();
                 this.communicator?.removeAllListeners();
                 delete this.communicator;
                 this.starting = true;
                 this.started = false;
                 ex();
             } else {
-                this.core.logger.error(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, e);
-                (this.communicator?.kill ?? worker.terminate)();
+                this.core.logger.error(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, e);
+                (this.communicator?.kill?.bind?.(this.communicator) ?? worker.terminate.bind(worker))();
                 this.communicator?.removeAllListeners();
                 delete this.communicator;
                 this.starting = this.started = false;
             }
         });
-        this.communicator = new Worker_ModuleCommParser(worker);
+        this.communicator = new Worker_ModuleCommParser(worker, this.core, `module.${this.moduleID}`);
     
         let abortChallengeClock = new AbortController();
         (async () => {
@@ -156,7 +158,7 @@ export default class NCBModule extends EventEmitter {
                 if (!abortChallengeClock.signal.aborted && this.communicator) {
                     await invokeChallenge(this.communicator, () => {
                         if (this.autoRestart) {
-                            this.core.logger.warn(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and is now restarting...`);
+                            this.core.logger.warn(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and is now restarting...`);
                             this.communicator?.kill();
                             this.communicator?.removeAllListeners();
                             delete this.communicator;
@@ -164,7 +166,7 @@ export default class NCBModule extends EventEmitter {
                             this.started = false;
                             ex();
                         } else {
-                            this.core.logger.error(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and has been terminated.`);
+                            this.core.logger.error(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and has been terminated.`);
                             this.communicator?.kill();
                             this.communicator?.removeAllListeners();
                             delete this.communicator;
@@ -216,7 +218,7 @@ export default class NCBModule extends EventEmitter {
                 }
             }
         } catch (e: any) {
-            this.core.logger.error(`Module ID ${this.moduleID} = ${this.moduleDir} (at ${this.tempDataDir}) failed to complete handshake:`, e?.error || e);
+            this.core.logger.error(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) failed to complete handshake:`, e?.error || e);
             throw e;
         }
     }
@@ -225,12 +227,22 @@ export default class NCBModule extends EventEmitter {
         if (!this.starting && !this.started) {
             this.starting = true;
             // Extract module to tempDataDir
-            await promisify(this.zip.extractAllToAsync)(this.tempDataDir, true);
+            // workaround bug cthackers/adm-zip#407
+            await promisify(this.zip.extractAllToAsync)(this.tempDataDir, true, false);
 
             switch (this.type) {
                 case "package":
-                    this.starting = false;
-                    throw new Error("Not implemented.");
+                    try {
+                        await this.startPackage();
+                        this.starting = false;
+                        this.started = true;
+                        this.queueMessage(null, true);
+                        return;
+                    } catch (e) {
+                        this.starting = false;
+                        this.started = false;
+                        throw e;
+                    }
                 case "script":
                     try {
                         await this.startScript();
@@ -252,20 +264,24 @@ export default class NCBModule extends EventEmitter {
 
 
     async startPackage() {
+        // Read package.json (in this.tempDataDir)
+        let packageJSON = JSON.parse(await fs.readFile(path.join(this.tempDataDir, "package.json"), "utf8"));
+
         switch (this.communicationProtocol) {
             case "msgpack":
+                throw new Error("This protocol is not possible in current configuration.");
             case "node_ipc":
                 throw new Error("Not implemented.");
             case "node_worker":
                 {
                     let ex = (async () => {
                         let worker = new Worker(`
-                           require("${path.relative(__dirname, this.moduleDir)}");
+                           import("${url.pathToFileURL(path.join(this.tempDataDir, packageJSON.main))}");
                         `, {
                             eval: true,
-                            stderr: false,
+                            stderr: true,
                             stdin: false,
-                            stdout: false
+                            stdout: true
                         });
 
                         await this._handleWorker(worker, ex);
@@ -292,9 +308,9 @@ export default class NCBModule extends EventEmitter {
 
                     let ex = (async () => {
                         let worker = new Worker(path.join(this.tempDataDir, this.json.scriptSrc), {
-                            stderr: false,
+                            stderr: true,
                             stdin: false,
-                            stdout: false
+                            stdout: true
                         });
 
                         await this._handleWorker(worker, ex);
@@ -316,7 +332,13 @@ export default class NCBModule extends EventEmitter {
 
     async readInfo() {
         // Reading information inside ZIP file (module.json)
-        let jsonString = await promisify(this.zip.readAsTextAsync)("module.json");
+        let jsonString = await 
+            promisify(this.zip.readAsTextAsync)("module.json")
+                .then(e => new Error(e))
+                .catch(e => e);
+        if (jsonString instanceof Error) {
+            throw jsonString;
+        }
         let moduleObj = JSON.parse(jsonString);
 
         this.json = moduleObj;
