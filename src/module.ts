@@ -157,6 +157,7 @@ export default class NCBModule extends EventEmitter {
                 await new Promise(r => setTimeout(r, Math.round(Math.random() * 30000) + 30000));
                 if (!abortChallengeClock.signal.aborted && this.communicator) {
                     await invokeChallenge(this.communicator, () => {
+                        abortChallengeClock.abort();
                         if (this.autoRestart) {
                             this.core.logger.warn(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and is now restarting...`);
                             this.communicator?.kill();
