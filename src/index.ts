@@ -16,7 +16,7 @@ const defaultCfg: ConfigInterface = {
     moduleConfig: {}
 };
 
-class SignalChannel extends EventEmitter {}
+class SignalChannel extends EventEmitter { }
 class PromptChannel extends EventEmitter {
     promptList: {
         [nonceID: string]: {
@@ -34,8 +34,8 @@ class PromptChannel extends EventEmitter {
     async prompt(type: "string" | "yes-no", promptInfo: string, defaultValue?: string | boolean) {
         // Generate random nonce ID
         let nonceID = crypto.randomBytes(64).toString("hex");
-        let callback: (rt: string | boolean) => void = () => {};
-        let promise = new Promise<string|boolean>(r => callback = r);
+        let callback: (rt: string | boolean) => void = () => { };
+        let promise = new Promise<string | boolean>(r => callback = r);
 
         this.promptList[nonceID] = {
             promptInfo,
@@ -63,10 +63,13 @@ export default class NCBCore {
 
     logger;
     profile_directory!: string;
-    config: ConfigInterface = {};
+    config: ConfigInterface = defaultCfg;
     module: {
+        core: NCBCoreModule,
         [id: string]: NCBCoreModule | NCBModule
-    } = {};
+    } = {
+        core: new NCBCoreModule(this)
+    };
     unassignedModuleID = 1;
     tempData: {
         [key: string]: any,
@@ -78,8 +81,8 @@ export default class NCBCore {
             }
         }
     } = {
-        plReg: {}
-    };
+            plReg: {}
+        };
     promptChannel = new PromptChannel();
     signalChannel = new SignalChannel();
 
@@ -104,6 +107,7 @@ export default class NCBCore {
             await this.createTemp();
 
             await this.initializeModules();
+            await this.initializeDatabaseModules();
             this.starting = false;
             this.running = true;
         }
@@ -129,7 +133,7 @@ export default class NCBCore {
             let cfg = JSON.parse(await fs.readFile(path.join(this.profile_directory, "config.json"), { encoding: "utf8" }));
             this.config = await this.applyDefault(cfg, defaultCfg);
         } catch {
-            this.config = await this.applyDefault({}, defaultCfg);
+            this.config = defaultCfg;
         }
         await fs.writeFile(path.join(this.profile_directory, "config.json"), JSON.stringify(this.config, null, "\t"));
     }
@@ -155,8 +159,6 @@ export default class NCBCore {
     }
 
     async initializeModules() {
-        this.module.core = new NCBCoreModule(this);
-
         let mod = await this.scanModules();
         let c = [];
         for (let mDir of mod) {
@@ -223,6 +225,27 @@ export default class NCBCore {
     }
 
     async initializeDatabaseModules() {
-        
+        for (let databaseCfg of this.config.databases) {
+            let m = Object.values(this.module).find(m => m.namespace === databaseCfg.shortName);
+            if (m) {
+                if (m.module === "database" && m instanceof NCBModule) {
+                    this.logger.info("core", `Initializing database ID ${databaseCfg.id} in module ${m.moduleID} (${m.displayName})`);
+                    let data = await this.module.core.callAPI(m.moduleID, "connect_db", {
+                        databaseID: databaseCfg.id,
+                        params: databaseCfg.params
+                    });
+                    if (!data.exist) 
+                        this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not spec-compliant.`);
+
+                    if (data.data && data.data.success) {
+                        this.logger.info("core", `Database ID ${databaseCfg.id} initialized.`);
+                    } else {
+                        this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}:`, data.error);
+                    }
+                }
+            } else {
+                this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) does not exist.`);
+            }
+        }
     }
 }

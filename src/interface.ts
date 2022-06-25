@@ -1,16 +1,17 @@
 export interface ConfigInterface {
-    listener?: ({
+    listener: ({
         shortName: string,
         loginData: any,
         id: number
     })[],
-    databases?: ({
+    databases: ({
         shortName: string,
         params: any,
-        id: number
+        id: number,
+        name: string
     })[],
-    defaultDatabase?: number,
-    moduleConfig?: {
+    defaultDatabase: number,
+    moduleConfig: {
         [shortName: string]: any
     }
 }
