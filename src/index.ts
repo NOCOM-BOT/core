@@ -130,8 +130,8 @@ export default class NCBCore {
             this.config = await this.applyDefault(cfg, defaultCfg);
         } catch {
             this.config = await this.applyDefault({}, defaultCfg);
-            await fs.writeFile(path.join(this.profile_directory, "config.json"), JSON.stringify(this.config, null, "\t"));
         }
+        await fs.writeFile(path.join(this.profile_directory, "config.json"), JSON.stringify(this.config, null, "\t"));
     }
 
     async applyDefault(config: ConfigInterface, defaultConfig: ConfigInterface) {
@@ -220,5 +220,9 @@ export default class NCBCore {
         try {
             await fs.rm(path.join(this.profile_directory, "temp", this.runInstanceID), { recursive: true });
         } catch { }
+    }
+
+    async initializeDatabaseModules() {
+        
     }
 }
