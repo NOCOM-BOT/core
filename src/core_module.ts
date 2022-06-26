@@ -1,6 +1,8 @@
 import type NCBCore from ".";
 import NCBModule from "./module";
 
+import path from "node:path";
+
 export default class NCBCoreModule {
     apiCallbackTable: {
         [nonce: string]: (data: any) => void
@@ -218,6 +220,13 @@ export default class NCBCoreModule {
 
                                         returnData = await promise;
                                     }
+                                }
+                                break;
+
+                            // 4.13
+                            case "get_data_folder":
+                                {
+                                    returnData = path.join(this.core.profile_directory, "data");
                                 }
                                 break;
 
