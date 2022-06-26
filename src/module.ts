@@ -7,8 +7,10 @@ import crypto from "node:crypto";
 import NCBCore from "./index.js";
 import ModuleCommParser from "./module_comm_parser/base.js";
 import { Worker_ModuleCommParser } from "./module_comm_parser/worker.js";
+import { Process_ModuleCommParser } from "./module_comm_parser/process.js";
 import url from "node:url";
 import fs from "node:fs/promises";
+import { ChildProcess, fork } from "node:child_process";
 
 import { loadDependencies } from "./pnpm.js";
 
@@ -99,47 +101,54 @@ export default class NCBModule extends EventEmitter {
         let packageJSON = JSON.parse(await fs.readFile(path.join(this.tempDataDir, "package.json"), "utf8"));
 
         // Load dependencies
-        let dependencies = await loadDependencies(this.tempDataDir);
+        await loadDependencies(this.tempDataDir);
 
         switch (this.communicationProtocol) {
             case "msgpack":
-                throw new Error("This protocol is not possible in current configuration.");
-            case "node_ipc":
                 throw new Error("Not implemented.");
-            case "node_worker":
+            case "node_ipc":
                 {
                     let ex = (async () => {
-                        let worker = new Worker(`
-                           import("${url.pathToFileURL(path.join(this.tempDataDir, packageJSON.main))}");
-                        `, {
-                            eval: true,
-                            stderr: true,
-                            stdin: false,
-                            stdout: true
+                        let child = fork(path.join(this.tempDataDir, packageJSON.main), [], {
+                            cwd: this.tempDataDir,
+                            silent: true
                         });
 
-                        await this._handleWorker(worker, ex);
+                        await this._handleProcess(child, ex);
                     });
 
                     return ex();
                 }
+            case "node_worker":
+                throw new Error("This protocol is not possible in current configuration.");
             default:
                 throw new Error(`Unknown module communication protocol "${this.communicationProtocol}"`);
         }
     }
 
     async _startScript() {
+        if (typeof this.json.scriptSrc !== "string") {
+            throw new Error(`Script not found: ${this.json.scriptSrc}`);
+        }
+
         switch (this.communicationProtocol) {
             case "msgpack":
-                throw new Error("This protocol is not possible in current configuration.");
-            case "node_ipc":
                 throw new Error("Not implemented.");
+            case "node_ipc":
+                {
+                    let ex = (async () => {
+                        let child = fork(path.join(this.tempDataDir, this.json.scriptSrc), [], {
+                            cwd: this.tempDataDir,
+                            silent: true
+                        });
+
+                        await this._handleProcess(child, ex);
+                    });
+
+                    return ex();
+                }
             case "node_worker":
                 {
-                    if (typeof this.json.scriptSrc !== "string") {
-                        throw new Error(`Script not found: ${this.json.scriptSrc}`);
-                    }
-
                     let ex = (async () => {
                         let worker = new Worker(path.join(this.tempDataDir, this.json.scriptSrc), {
                             stderr: true,
@@ -300,6 +309,18 @@ export default class NCBModule extends EventEmitter {
 
         this._handleData(ex);
 
+        // Sending handshake
+        return this._handshake();
+    }
+
+    async _handleProcess(process: ChildProcess, ex: Function) {
+        this.communicator = new Process_ModuleCommParser(process);
+        process.on("error", e => {
+            this._handleCrash("error", ex, e)
+        });
+
+        this._handleData(ex);
+        
         // Sending handshake
         return this._handshake();
     }
