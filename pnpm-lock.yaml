@@ -1,41 +1,43 @@
-lockfileVersion: 5.3
+lockfileVersion: 5.4
 
 specifiers:
-  '@tsconfig/node16': ^1.0.2
-  '@types/adm-zip': ^0.4.34
+  '@tsconfig/node18': ^1.0.1
+  '@types/adm-zip': ^0.5.0
   '@types/msgpack5': ^3.4.2
   '@types/node': ^17.0.13
   adm-zip: ^0.5.9
   msgpack5: ^5.3.2
-  typescript: ^4.5.5
+  pnpm: ^7.3.0
+  typescript: ^4.7.4
 
 dependencies:
   adm-zip: 0.5.9
   msgpack5: 5.3.2
+  pnpm: 7.3.0
 
 devDependencies:
-  '@tsconfig/node16': 1.0.2
-  '@types/adm-zip': 0.4.34
+  '@tsconfig/node18': 1.0.1
+  '@types/adm-zip': 0.5.0
   '@types/msgpack5': 3.4.2
-  '@types/node': 17.0.13
-  typescript: 4.5.5
+  '@types/node': 17.0.45
+  typescript: 4.7.4
 
 packages:
 
-  /@tsconfig/node16/1.0.2:
-    resolution: {integrity: sha512-eZxlbI8GZscaGS7kkc/trHTT5xgrjH3/1n2JDwusC9iahPKWMRvRjJSAN5mCXviuTGQ/lHnhvv8Q1YTpnfz9gA==}
+  /@tsconfig/node18/1.0.1:
+    resolution: {integrity: sha512-sNFeK6X2ATlhlvzyH4kKYQlfHXE2f2/wxtB9ClvYXevWpmwkUT7VaSrjIN9E76Qebz8qP5JOJJ9jD3QoD/Z9TA==}
     dev: true
 
-  /@types/adm-zip/0.4.34:
-    resolution: {integrity: sha512-8ToYLLAYhkRfcmmljrKi22gT2pqu7hGMDtORP1emwIEGmgUTZOsaDjzWFzW5N2frcFRz/50CWt4zA1CxJ73pmQ==}
+  /@types/adm-zip/0.5.0:
+    resolution: {integrity: sha512-FCJBJq9ODsQZUNURo5ILAQueuA8WJhRvuihS3ke2iI25mJlfV2LK8jG2Qj2z2AWg8U0FtWWqBHVRetceLskSaw==}
     dependencies:
-      '@types/node': 17.0.13
+      '@types/node': 17.0.45
     dev: true
 
   /@types/bl/5.0.2:
     resolution: {integrity: sha512-V4g3uJIfBHeDd/35QTPOujJ4+viJJVtNwC2LmBUZeXGSGL60R5iTsBEZ9Nh+wP3asMOA/LEFHxmKT6JzK+Vd0A==}
     dependencies:
-      '@types/node': 17.0.13
+      '@types/node': 17.0.45
       '@types/readable-stream': 2.3.13
     dev: true
 
@@ -45,14 +47,14 @@ packages:
       '@types/bl': 5.0.2
     dev: true
 
-  /@types/node/17.0.13:
-    resolution: {integrity: sha512-Y86MAxASe25hNzlDbsviXl8jQHb0RDvKt4c40ZJQ1Don0AAL0STLZSs4N+6gLEO55pedy7r2cLwS+ZDxPm/2Bw==}
+  /@types/node/17.0.45:
+    resolution: {integrity: sha512-w+tIMs3rq2afQdsPJlODhoUEKzFP1ayaoyl1CcnwtIlsVe7K7bA1NGm4s3PraqTLlXnbIN84zuBlxBWo1u9BLw==}
     dev: true
 
   /@types/readable-stream/2.3.13:
     resolution: {integrity: sha512-4JSCx8EUzaW9Idevt+9lsRAt1lcSccoQfE+AouM1gk8sFxnnytKNIO3wTl9Dy+4m6jRJ1yXhboLHHT/LXBQiEw==}
     dependencies:
-      '@types/node': 17.0.13
+      '@types/node': 17.0.45
       safe-buffer: 5.2.1
     dev: true
 
@@ -97,6 +99,12 @@ packages:
       safe-buffer: 5.2.1
     dev: false
 
+  /pnpm/7.3.0:
+    resolution: {integrity: sha512-HOXT6V+AznAyjL2Ay3TuuJQucsEguUiKjqyQq4WPPwOpaaILhkKvu8Nn1/OQWGi9V6T7OciyrctAKeYyCha6Ow==}
+    engines: {node: '>=14.6'}
+    hasBin: true
+    dev: false
+
   /readable-stream/3.6.0:
     resolution: {integrity: sha512-BViHy7LKeTz4oNnkcLJ+lVSL6vpiFeX6/d3oSH8zCW7UxP2onchk+vTGB143xuFjHS3deTgkKoXXymXqymiIdA==}
     engines: {node: '>= 6'}
@@ -115,12 +123,12 @@ packages:
       safe-buffer: 5.2.1
     dev: false
 
-  /typescript/4.5.5:
-    resolution: {integrity: sha512-TCTIul70LyWe6IJWT8QSYeA54WQe8EjQFU4wY52Fasj5UKx88LNYKCgBEHcOMOrFF1rKGbD8v/xcNWVUq9SymA==}
+  /typescript/4.7.4:
+    resolution: {integrity: sha512-C0WQT0gezHuw6AdY1M2jxUO83Rjf0HP7Sk1DtXj6j1EwkQNZrHAg2XPWlq62oqEhYvONq5pkC2Y9oPljWToLmQ==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true
 
   /util-deprecate/1.0.2:
-    resolution: {integrity: sha1-RQ1Nyfpw3nMnYvvS1KKJgUGaDM8=}
+    resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
     dev: false

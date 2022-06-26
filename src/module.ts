@@ -10,6 +10,8 @@ import { Worker_ModuleCommParser } from "./module_comm_parser/worker.js";
 import url from "node:url";
 import fs from "node:fs/promises";
 
+import { loadDependencies } from "./pnpm.js";
+
 interface HandshakeResponseFail {
     type: "handshake_fail",
     error: string | number | null
@@ -95,6 +97,9 @@ export default class NCBModule extends EventEmitter {
     async _startPackage() {
         // Read package.json (in this.tempDataDir)
         let packageJSON = JSON.parse(await fs.readFile(path.join(this.tempDataDir, "package.json"), "utf8"));
+
+        // Load dependencies
+        let dependencies = await loadDependencies(this.tempDataDir);
 
         switch (this.communicationProtocol) {
             case "msgpack":
