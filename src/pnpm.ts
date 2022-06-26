@@ -15,13 +15,7 @@ if (existsSync(join(__dirname, "..", "..", "node_modules", "pnpm", "bin", "pnpm.
 
 export async function loadDependencies(cwd: string) {
     let pnpm: ChildProcess;
-    if (existsSync(join(cwd, "pnpm-lock.yaml"))) {
-        pnpm = fork(pnpmLocation, ["install"], { cwd, silent: true });
-    } else if (existsSync(join(cwd, "package-lock.json"))) {
-        pnpm = fork(pnpmLocation, ["import"], { cwd, silent: true });
-    } else {
-        pnpm = fork(pnpmLocation, ["install"], { cwd, silent: true });
-    }
+    pnpm = fork(pnpmLocation, ["install"], { cwd, silent: true });
 
     return new Promise<void>((resolve, reject) => {
         pnpm.on("error", reject);

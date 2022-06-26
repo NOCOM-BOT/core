@@ -246,9 +246,9 @@ export default class NCBCoreModule {
                 } else if (data.type === "api_response") {
                     // Other code in the kernel can send API call on behalf of `core` module.
                     // This is the event listener to handle those API calls.
-
-                    if (this.apiCallbackTable[data.response_from + data.nonce]) {
-                        this.apiCallbackTable[data.response_from + data.nonce]({
+                    
+                    if (this.apiCallbackTable[data.nonce]) {
+                        this.apiCallbackTable[data.nonce]({
                             exist: data.exist,
                             data: data.data,
                             error: data.error
