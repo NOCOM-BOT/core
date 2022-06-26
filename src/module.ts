@@ -120,7 +120,7 @@ export default class NCBModule extends EventEmitter {
                     return ex();
                 }
             case "node_worker":
-                throw new Error("This protocol is not possible in current configuration.");
+                throw new Error(`Protocol '${this.communicationProtocol}' is not possible in type '${this.type}'.`);
             default:
                 throw new Error(`Unknown module communication protocol "${this.communicationProtocol}"`);
         }
