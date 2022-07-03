@@ -278,15 +278,15 @@ export default class NCBCoreModule {
 
     callAPI(targetModule: string, command: string, data: any) {
         let nonce = targetModule + "A" + Math.random().toString(10).substring(2);
-        let resolve = (value: {
-            exist: boolean,
+        let resolve = (value: ({
+            exist: true,
             data: any,
             error: any
-        }) => { }, promise = new Promise<{
-            exist: boolean,
+        } | { exist: false })) => { }, promise = new Promise<({
+            exist: true,
             data: any,
             error: any
-        }>(r => resolve = r);
+        } | { exist: false })>(r => resolve = r);
         this.apiCallbackTable[nonce] = resolve;
 
         this.core.module[targetModule].queueMessage({
