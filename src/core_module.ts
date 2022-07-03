@@ -230,6 +230,13 @@ export default class NCBCoreModule {
                                 }
                                 break;
 
+                            // 4.14
+                            case "get_temp_folder":
+                                {
+                                    returnData = path.join(this.core.profile_directory, "temp", this.core.runInstanceID);
+                                }
+                                break;
+
                             default:
                                 exist = false;
                         }
