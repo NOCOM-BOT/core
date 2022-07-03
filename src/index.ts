@@ -234,13 +234,14 @@ export default class NCBCore {
                         databaseID: databaseCfg.id,
                         params: databaseCfg.params
                     });
-                    if (!data.exist) 
-                        this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not spec-compliant.`);
-
-                    if (data.data && data.data.success) {
-                        this.logger.info("core", `Database ID ${databaseCfg.id} initialized.`);
+                    if (data.exist) {
+                        if (data.data && data.data.success) {
+                            this.logger.info("core", `Database ID ${databaseCfg.id} initialized.`);
+                        } else {
+                            this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}:`, data.error);
+                        }
                     } else {
-                        this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}:`, data.error);
+                        this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not spec-compliant.`);
                     }
                 }
             } else {
