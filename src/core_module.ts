@@ -1,7 +1,10 @@
 import type NCBCore from ".";
 import NCBModule from "./module";
 
+import { loadDependencies } from "./pnpm";
+
 import path from "node:path";
+import fsSync from "node:fs";
 
 export default class NCBCoreModule {
     apiCallbackTable: {
@@ -236,6 +239,30 @@ export default class NCBCoreModule {
                                     returnData = path.join(this.core.profile_directory, "temp", this.core.runInstanceID);
                                 }
                                 break;
+
+                            // 4.15
+                            case "pnpm_install":
+                                {
+                                    let typedDataPnpmInstall = data as {
+                                        path: string
+                                    }
+
+                                    if (typedDataPnpmInstall.path) {
+                                        if (fsSync.existsSync(typedDataPnpmInstall.path)) {
+                                            try {
+                                                loadDependencies(typedDataPnpmInstall.path);
+                                                returnData = { success: true };
+                                            } catch (e) {
+                                                returnData = { success: false, error: String(e) };
+                                            }
+                                        } else {
+                                            returnData = {
+                                                success: false,
+                                                error: "Path does not exist"
+                                            }
+                                        }
+                                    }
+                                }
 
                             default:
                                 exist = false;
