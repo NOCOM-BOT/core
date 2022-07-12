@@ -28,3 +28,19 @@ export async function loadDependencies(cwd: string) {
         });
     });
 }
+
+export async function loadSpecificDependencies(cwd: string, dep: string) {
+    let pnpm: ChildProcess;
+    pnpm = fork(pnpmLocation, ["add", dep], { cwd, silent: true });
+
+    return new Promise<void>((resolve, reject) => {
+        pnpm.on("error", reject);
+        pnpm.on("exit", (code) => {
+            if (code !== 0) {
+                reject(new Error(`PNPM exited with code ${code}`));
+            } else {
+                resolve();
+            }
+        });
+    });
+}

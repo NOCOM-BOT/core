@@ -1,7 +1,7 @@
 import type NCBCore from ".";
 import NCBModule from "./module";
 
-import { loadDependencies } from "./pnpm";
+import { loadDependencies, loadSpecificDependencies } from "./pnpm";
 
 import path from "node:path";
 import fsSync from "node:fs";
@@ -264,6 +264,31 @@ export default class NCBCoreModule {
                                     }
                                 }
 
+                            // 4.16:
+                            case "pnpm_install_specific":
+                                {
+                                    let typedDataPnpmInstall = data as {
+                                        path: string,
+                                        dep: string
+                                    }
+
+                                    if (typedDataPnpmInstall.path) {
+                                        if (fsSync.existsSync(typedDataPnpmInstall.path)) {
+                                            try {
+                                                loadSpecificDependencies(typedDataPnpmInstall.path, typedDataPnpmInstall.dep);
+                                                returnData = { success: true };
+                                            } catch (e) {
+                                                returnData = { success: false, error: String(e) };
+                                            }
+                                        } else {
+                                            returnData = {
+                                                success: false,
+                                                error: "Path does not exist"
+                                            }
+                                        }
+                                    }
+                                }
+
                             default:
                                 exist = false;
                         }
@@ -289,7 +314,7 @@ export default class NCBCoreModule {
                 } else if (data.type === "api_response") {
                     // Other code in the kernel can send API call on behalf of `core` module.
                     // This is the event listener to handle those API calls.
-                    
+
                     if (this.apiCallbackTable[data.nonce]) {
                         this.apiCallbackTable[data.nonce]({
                             exist: data.exist,
