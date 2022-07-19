@@ -145,8 +145,9 @@ export default class NCBCoreModule {
                                         this.core.tempData.plReg[data.namespace] = {
                                             pluginName: data.pluginName,
                                             version: data.version,
-                                            author: data.author
-                                        }
+                                            author: data.author,
+                                            resolver: senderModule.moduleID
+                                        };
                                         returnData = { conflict: false };
                                     }
                                 } else {
@@ -162,6 +163,7 @@ export default class NCBCoreModule {
                                 } else {
                                     returnData = { success: false };
                                 }
+                                break;
 
                             // 4.10
                             case "prompt":
@@ -263,6 +265,7 @@ export default class NCBCoreModule {
                                         }
                                     }
                                 }
+                                break;
 
                             // 4.16:
                             case "pnpm_install_specific":
@@ -288,6 +291,30 @@ export default class NCBCoreModule {
                                         }
                                     }
                                 }
+                                break;
+
+                            // 4.17
+                            case "get_plugin_namespace_info":
+                                {
+                                    let typedDataGetNamespaceInfo = data as {
+                                        namespace: string
+                                    }
+
+                                    if (typedDataGetNamespaceInfo.namespace) {
+                                        if (this.core.tempData.plReg[typedDataGetNamespaceInfo.namespace]) {
+                                            returnData = {
+                                                exist: true,
+                                                pluginName: this.core.tempData.plReg[typedDataGetNamespaceInfo.namespace].pluginName,
+                                                version: this.core.tempData.plReg[typedDataGetNamespaceInfo.namespace].version,
+                                                author: this.core.tempData.plReg[typedDataGetNamespaceInfo.namespace].author,
+                                                resolver: this.core.tempData.plReg[typedDataGetNamespaceInfo.namespace].resolver
+                                            }
+                                        }
+                                    } else {
+                                        returnData = { exist: false };
+                                    }
+                                }
+                                break;
 
                             default:
                                 exist = false;

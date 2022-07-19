@@ -77,7 +77,8 @@ export default class NCBCore {
             [namespace: string]: {
                 pluginName: string,
                 version: string,
-                author: string
+                author: string,
+                resolver: string
             }
         }
     } = {
