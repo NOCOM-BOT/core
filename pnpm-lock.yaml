@@ -13,7 +13,7 @@ specifiers:
 dependencies:
   adm-zip: 0.5.9
   msgpack5: 5.3.2
-  pnpm: 7.3.0
+  pnpm: 7.5.0
 
 devDependencies:
   '@tsconfig/node18': 1.0.1
@@ -99,8 +99,8 @@ packages:
       safe-buffer: 5.2.1
     dev: false
 
-  /pnpm/7.3.0:
-    resolution: {integrity: sha512-HOXT6V+AznAyjL2Ay3TuuJQucsEguUiKjqyQq4WPPwOpaaILhkKvu8Nn1/OQWGi9V6T7OciyrctAKeYyCha6Ow==}
+  /pnpm/7.5.0:
+    resolution: {integrity: sha512-sb9wJNyx/d8l3Gze2jI1y8BGNbb/ga+JT3SrGNiH+C5KbtZ4wmgePBWGjaiGugcpT9+vQ5MO//+QlVWhMCpedQ==}
     engines: {node: '>=14.6'}
     hasBin: true
     dev: false
