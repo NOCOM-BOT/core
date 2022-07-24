@@ -11,7 +11,7 @@ export default class NCBCoreModule {
         [nonce: string]: (data: any) => void
     } = {};
 
-    eventTable: {
+    _eventTable: {
         [eventName: string]: {
             module: NCBModule,
             api: string
@@ -74,26 +74,26 @@ export default class NCBCoreModule {
 
                             // 4.5
                             case "register_event_hook":
-                                if (!Array.isArray(this.eventTable[data.data.eventName])) {
-                                    this.eventTable[data.data.eventName] = [];
+                                if (!Array.isArray(this._eventTable[data.data.eventName])) {
+                                    this._eventTable[data.data.eventName] = [];
                                 }
 
-                                this.eventTable[data.data.eventName].push({
+                                this._eventTable[data.data.eventName].push({
                                     module: senderModule,
-                                    api: data.callbackFunction
+                                    api: data.data.callbackFunction
                                 });
-
+                                console.log(this._eventTable);
                                 returnData = { success: true };
 
                             // 4.6
                             case "unregister_event_hook":
-                                if (!Array.isArray(this.eventTable[data.data.eventName])) {
-                                    this.eventTable[data.data.eventName] = [];
+                                if (!Array.isArray(this._eventTable[data.data.eventName])) {
+                                    this._eventTable[data.data.eventName] = [];
                                     returnData = { success: false };
                                 } else {
-                                    let index = this.eventTable[data.data.eventName].findIndex(v => v.module === senderModule && v.api === data.callbackFunction);
+                                    let index = this._eventTable[data.data.eventName].findIndex(v => v.module === senderModule && v.api === data.callbackFunction);
                                     if (index + 1) {
-                                        this.eventTable[data.data.eventName].splice(index, 1);
+                                        this._eventTable[data.data.eventName].splice(index, 1);
 
                                         returnData = { success: true };
                                     } else {
@@ -104,12 +104,13 @@ export default class NCBCoreModule {
 
                             // 4.7
                             case "send_event":
-                                if (!Array.isArray(this.eventTable[data.data.eventName])) {
-                                    this.eventTable[data.data.eventName] = [];
+                                console.log(this._eventTable);
+                                if (!Array.isArray(this._eventTable[data.data.eventName])) {
+                                    this._eventTable[data.data.eventName] = [];
                                     returnData = { hasSubscribers: false };
                                 } else {
-                                    if (this.eventTable[data.data.eventName].length) {
-                                        for (let subscriber of this.eventTable[data.data.eventName]) {
+                                    if (this._eventTable[data.data.eventName].length) {
+                                        for (let subscriber of this._eventTable[data.data.eventName]) {
                                             subscriber.module.queueMessage({
                                                 type: "api_call",
                                                 call_from: "core",
