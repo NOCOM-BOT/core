@@ -109,6 +109,8 @@ export default class NCBCore {
 
             await this.initializeModules();
             await this.initializeDatabaseModules();
+            await this.initializePluginHandlers();
+            await this.initializeInterfaceListener();
             this.starting = false;
             this.running = true;
         }
@@ -244,9 +246,44 @@ export default class NCBCore {
                     } else {
                         this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not spec-compliant.`);
                     }
+                } else {
+                    this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not a database handler.`);    
                 }
             } else {
                 this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) does not exist.`);
+            }
+        }
+    }
+
+    async initializePluginHandlers() {
+
+    }
+
+    async initializeInterfaceListener() {
+        for (let interfaceCfg of this.config.listener) {
+            let m = Object.values(this.module).find(m => m.namespace === interfaceCfg.shortName);
+            if (m) {
+                if (m.module === "interface" && m instanceof NCBModule) {
+                    this.logger.info("core", `Initializing interface ID ${interfaceCfg.id} in module ${m.moduleID} (${m.displayName})`);
+                    let data = await this.module.core.callAPI(m.moduleID, "login", {
+                        interfaceID: interfaceCfg.id,
+                        loginData: interfaceCfg.loginData
+                    });
+
+                    if (data.exist) {
+                        if (data.data && data.data.success) {
+                            this.logger.info("core", `Interface ID ${interfaceCfg.id} initialized.`);
+                        } else {
+                            this.logger.error("core", `Cannot initialize interface ID ${interfaceCfg.id}:`, data.error);
+                        }
+                    } else {
+                        this.logger.error("core", `Cannot initialize interface ID ${interfaceCfg.id}: Specified module handler (${interfaceCfg.shortName}) is not spec-compliant.`);
+                    }
+                } else {
+                    this.logger.error("core", `Cannot initialize interface ID ${interfaceCfg.id}: Specified module handler (${interfaceCfg.shortName}) is not a interface handler.`);    
+                }
+            } else {
+                this.logger.error("core", `Cannot initialize interface ID ${interfaceCfg.id}: Specified module handler (${interfaceCfg.shortName}) does not exist.`);
             }
         }
     }
