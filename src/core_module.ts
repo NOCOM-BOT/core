@@ -74,11 +74,11 @@ export default class NCBCoreModule {
 
                             // 4.5
                             case "register_event_hook":
-                                if (!Array.isArray(this.eventTable[data.eventName])) {
-                                    this.eventTable[data.eventName] = [];
+                                if (!Array.isArray(this.eventTable[data.data.eventName])) {
+                                    this.eventTable[data.data.eventName] = [];
                                 }
 
-                                this.eventTable[data.eventName].push({
+                                this.eventTable[data.data.eventName].push({
                                     module: senderModule,
                                     api: data.callbackFunction
                                 });
@@ -87,13 +87,13 @@ export default class NCBCoreModule {
 
                             // 4.6
                             case "unregister_event_hook":
-                                if (!Array.isArray(this.eventTable[data.eventName])) {
-                                    this.eventTable[data.eventName] = [];
+                                if (!Array.isArray(this.eventTable[data.data.eventName])) {
+                                    this.eventTable[data.data.eventName] = [];
                                     returnData = { success: false };
                                 } else {
-                                    let index = this.eventTable[data.eventName].findIndex(v => v.module === senderModule && v.api === data.callbackFunction);
+                                    let index = this.eventTable[data.data.eventName].findIndex(v => v.module === senderModule && v.api === data.callbackFunction);
                                     if (index + 1) {
-                                        this.eventTable[data.eventName].splice(index, 1);
+                                        this.eventTable[data.data.eventName].splice(index, 1);
 
                                         returnData = { success: true };
                                     } else {
@@ -104,20 +104,20 @@ export default class NCBCoreModule {
 
                             // 4.7
                             case "send_event":
-                                if (!Array.isArray(this.eventTable[data.eventName])) {
-                                    this.eventTable[data.eventName] = [];
+                                if (!Array.isArray(this.eventTable[data.data.eventName])) {
+                                    this.eventTable[data.data.eventName] = [];
                                     returnData = { hasSubscribers: false };
                                 } else {
-                                    if (this.eventTable[data.eventName].length) {
-                                        for (let subscriber of this.eventTable[data.eventName]) {
+                                    if (this.eventTable[data.data.eventName].length) {
+                                        for (let subscriber of this.eventTable[data.data.eventName]) {
                                             subscriber.module.queueMessage({
                                                 type: "api_call",
                                                 call_from: "core",
                                                 call_cmd: subscriber.api,
                                                 data: {
                                                     calledFrom: senderModule.moduleID,
-                                                    eventName: data.eventName,
-                                                    eventData: data.data
+                                                    eventName: data.data.eventName,
+                                                    eventData: data.data.data
                                                 },
                                                 nonce: -1
                                             });
@@ -133,19 +133,19 @@ export default class NCBCoreModule {
                             // 4.8
                             case "register_plugin":
                                 if (
-                                    typeof data.pluginName === "string" &&
-                                    typeof data.namespace === "string" &&
-                                    typeof data.version === "string" &&
-                                    typeof data.author === "string" &&
-                                    data.namespace
+                                    typeof data.data.pluginName === "string" &&
+                                    typeof data.data.namespace === "string" &&
+                                    typeof data.data.version === "string" &&
+                                    typeof data.data.author === "string" &&
+                                    data.data.namespace
                                 ) {
-                                    if (this.core.tempData.plReg[data.namespace]) {
+                                    if (this.core.tempData.plReg[data.data.namespace]) {
                                         returnData = { conflict: true };
                                     } else {
-                                        this.core.tempData.plReg[data.namespace] = {
-                                            pluginName: data.pluginName,
-                                            version: data.version,
-                                            author: data.author,
+                                        this.core.tempData.plReg[data.data.namespace] = {
+                                            pluginName: data.data.pluginName,
+                                            version: data.data.version,
+                                            author: data.data.author,
                                             resolver: senderModule.moduleID
                                         };
                                         returnData = { conflict: false };
@@ -157,9 +157,9 @@ export default class NCBCoreModule {
 
                             // 4.9
                             case "unregister_plugin":
-                                if (typeof data.namespace === "string" && data.namespace) {
-                                    returnData = { success: !!this.core.tempData.plReg[data.namespace] };
-                                    delete this.core.tempData.plReg[data.namespace];
+                                if (typeof data.data.namespace === "string" && data.data.namespace) {
+                                    returnData = { success: !!this.core.tempData.plReg[data.data.namespace] };
+                                    delete this.core.tempData.plReg[data.data.namespace];
                                 } else {
                                     returnData = { success: false };
                                 }
@@ -168,7 +168,7 @@ export default class NCBCoreModule {
                             // 4.10
                             case "prompt":
                                 {
-                                    let typedDataPrompt = data as {
+                                    let typedDataPrompt = data.data as {
                                         promptInfo: string,
                                         promptType: "string" | "yes-no",
                                         defaultValue?: string | boolean
@@ -181,8 +181,8 @@ export default class NCBCoreModule {
                             // 4.11
                             case "log":
                                 {
-                                    let typedDataLog = data as {
-                                        level: "critical" | "error" | "warn" | "info" | "debug",
+                                    let typedDataLog = data.data as {
+                                        level: "critical" | "error" | "warn" | "info" | "debug" | "verbose",
                                         data: any[],
                                         namespace: string
                                     }
@@ -193,7 +193,7 @@ export default class NCBCoreModule {
                             // 4.12
                             case "wait_for_module":
                                 {
-                                    if (Object.entries(this.core.module).find(([, module]) => (module.namespace === data.moduleNamespace && module.started))) {
+                                    if (Object.entries(this.core.module).find(([, module]) => (module.namespace === data.data.moduleNamespace && module.started))) {
                                         returnData = true;
                                     } else {
                                         let wfmCallback = (cb: boolean) => { },
@@ -205,7 +205,7 @@ export default class NCBCoreModule {
                                             id: string,
                                             namespace: string
                                         }) => {
-                                            if (plLoadEv.namespace === data.moduleNamespace) {
+                                            if (plLoadEv.namespace === data.data.moduleNamespace) {
                                                 // Loaded.
                                                 this.core.signalChannel.removeListener("plugin_load", funcCallback);
                                                 try {
@@ -216,11 +216,11 @@ export default class NCBCoreModule {
                                         }
 
                                         this.core.signalChannel.on("plugin_load", funcCallback);
-                                        if (typeof data.timeout === "number") {
+                                        if (typeof data.data.timeout === "number") {
                                             timeout = setTimeout(() => {
                                                 this.core.signalChannel.removeListener("plugin_load", funcCallback);
                                                 wfmCallback(false);
-                                            }, data.timeout);
+                                            }, data.data.timeout);
                                         }
 
                                         returnData = await promise;
@@ -245,7 +245,7 @@ export default class NCBCoreModule {
                             // 4.15
                             case "pnpm_install":
                                 {
-                                    let typedDataPnpmInstall = data as {
+                                    let typedDataPnpmInstall = data.data as {
                                         path: string
                                     }
 
@@ -270,7 +270,7 @@ export default class NCBCoreModule {
                             // 4.16:
                             case "pnpm_install_specific":
                                 {
-                                    let typedDataPnpmInstall = data as {
+                                    let typedDataPnpmInstall = data.data as {
                                         path: string,
                                         dep: string
                                     }
@@ -296,7 +296,7 @@ export default class NCBCoreModule {
                             // 4.17
                             case "get_plugin_namespace_info":
                                 {
-                                    let typedDataGetNamespaceInfo = data as {
+                                    let typedDataGetNamespaceInfo = data.data as {
                                         namespace: string
                                     }
 
