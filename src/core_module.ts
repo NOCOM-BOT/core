@@ -1,7 +1,7 @@
 import type NCBCore from ".";
 import NCBModule from "./module";
 
-import { loadDependencies, loadSpecificDependencies } from "./pnpm";
+import { loadDependencies, loadSpecificDependencies } from "./pnpm.js";
 
 import path from "node:path";
 import fsSync from "node:fs";
