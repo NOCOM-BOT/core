@@ -82,7 +82,6 @@ export default class NCBCoreModule {
                                     module: senderModule,
                                     api: data.data.callbackFunction
                                 });
-                                console.log(this._eventTable);
                                 returnData = { success: true };
 
                             // 4.6
@@ -104,7 +103,6 @@ export default class NCBCoreModule {
 
                             // 4.7
                             case "send_event":
-                                console.log(this._eventTable);
                                 if (!Array.isArray(this._eventTable[data.data.eventName])) {
                                     this._eventTable[data.data.eventName] = [];
                                     returnData = { hasSubscribers: false };
