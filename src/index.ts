@@ -271,9 +271,10 @@ export default class NCBCore {
             });
 
             if (findResult.exist) {
-                if (findResult.data && Array.isArray(findResult.data)) {
-                    this.logger.info("core", `Plugin handler at ID ${moduleID} (${this.module[moduleID].displayName}) found ${findResult.data.length} plugin(s).`);
-                    result = result.concat(findResult.data.map(x => ({
+                if (typeof findResult.data === "object" && Array.isArray(findResult.data.valid)) {
+                    let arr = findResult.data.valid as string[];
+                    this.logger.info("core", `Plugin handler at ID ${moduleID} (${this.module[moduleID].displayName}) found ${arr.length} plugin(s).`);
+                    result = result.concat(arr.map(x => ({
                         moduleID: moduleID,
                         path: x
                     })));
