@@ -110,7 +110,7 @@ export default class NCBCore {
             await this.initializeModules();
             await this.initializeDatabaseModules();
             await this.initializePluginHandlers();
-            await this.initializeInterfaceListener();
+            this.initializeInterfaceListener();
             this.starting = false;
             this.running = true;
         }

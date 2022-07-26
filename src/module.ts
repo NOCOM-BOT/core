@@ -385,7 +385,7 @@ export default class NCBModule extends EventEmitter {
                 if (typeof data === "object") {
                     switch (data.type) {
                         case "api_send":
-                            this.core.module[data.call_to].queueMessage({
+                            this.core.module[data.call_to]?.queueMessage({
                                 type: "api_call",
                                 call_from: this.moduleID,
                                 call_cmd: data.call_cmd,
@@ -394,7 +394,7 @@ export default class NCBModule extends EventEmitter {
                             });
                             break;
                         case "api_sendresponse":
-                            this.core.module[data.response_to].queueMessage({
+                            this.core.module[data.response_to]?.queueMessage({
                                 type: "api_response",
                                 response_from: this.moduleID,
                                 exist: data.exist,
