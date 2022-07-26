@@ -148,6 +148,7 @@ export default class NCBCoreModule {
                                             author: data.data.author,
                                             resolver: senderModule.moduleID
                                         };
+                                        this.core.logger.info(`Plugin namespace "${data.data.namespace}" registered by module ID ${senderModule.moduleID}`);
                                         returnData = { conflict: false };
                                     }
                                 } else {
@@ -160,6 +161,7 @@ export default class NCBCoreModule {
                                 if (typeof data.data.namespace === "string" && data.data.namespace) {
                                     returnData = { success: !!this.core.tempData.plReg[data.data.namespace] };
                                     delete this.core.tempData.plReg[data.data.namespace];
+                                    this.core.logger.info(`Plugin namespace "${data.data.namespace}" unregistered by module ID ${senderModule.moduleID}`);
                                 } else {
                                     returnData = { success: false };
                                 }

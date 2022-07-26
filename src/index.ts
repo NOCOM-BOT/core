@@ -68,8 +68,8 @@ export default class NCBCore {
         core: NCBCoreModule,
         [id: string]: NCBCoreModule | NCBModule
     } = {
-        core: new NCBCoreModule(this)
-    };
+            core: new NCBCoreModule(this)
+        };
     unassignedModuleID = 1;
     tempData: {
         [key: string]: any,
@@ -127,7 +127,8 @@ export default class NCBCore {
 
     async ensureProfileDir() {
         try {
-            await fs.mkdir(path.join(this.profile_directory, "temp", this.runInstanceID), { recursive: true });
+            await fs.mkdir(path.join(this.profile_directory), { recursive: true });
+            await fs.mkdir(path.join(this.profile_directory, "plugins"), { recursive: true });
         } catch { }
     }
 
@@ -149,6 +150,7 @@ export default class NCBCore {
     }
 
     async scanModules() {
+        this.logger.info("core", `Searching for modules...`);
         try {
             let b = path.join(this.profile_directory, "modules");
             if (!fsSync.existsSync(b)) {
@@ -247,7 +249,7 @@ export default class NCBCore {
                         this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not spec-compliant.`);
                     }
                 } else {
-                    this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not a database handler.`);    
+                    this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not a database handler.`);
                 }
             } else {
                 this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) does not exist.`);
@@ -256,7 +258,72 @@ export default class NCBCore {
     }
 
     async initializePluginHandlers() {
+        this.logger.info("core", `Searching for plugins...`);
+        let result: { moduleID: string, path: string }[] = [];
 
+        for (let moduleID in this.module) {
+            if (this.module[moduleID].module !== "pl_handler") {
+                continue;
+            }
+
+            let findResult = await this.module.core.callAPI(moduleID, "plugin_search", {
+                pathname: path.join(this.profile_directory, "plugins")
+            });
+
+            if (findResult.exist) {
+                if (findResult.data && Array.isArray(findResult.data)) {
+                    this.logger.info("core", `Plugin handler at ID ${moduleID} (${this.module[moduleID].displayName}) found ${findResult.data.length} plugin(s).`);
+                    result = result.concat(findResult.data.map(x => ({
+                        moduleID: moduleID,
+                        path: x
+                    })));
+                } else {
+                    this.logger.error("core", `Plugin handler at ID ${moduleID} (${this.module[moduleID].displayName}) throw an error:`, findResult.error);
+                }
+            } else {
+                continue;
+            }
+        }
+
+        this.logger.info("core", `${result.length} plugin(s) found.`);
+
+        let pArray: Promise<boolean>[] = [];
+        for (let { moduleID, path } of result) {
+            let m = this.module[moduleID];
+            if (m instanceof NCBModule) {
+                pArray.push((async () => {
+                    this.logger.info("core", `Initializing plugin at ${path} (handler: ${m.displayName})`);
+
+                    // Test if path is a file or directory
+                    let stat = await fs.stat(path);
+                    let callObj: { filename?: string, pathname?: string } = {};
+                    if (stat.isFile()) {
+                        callObj.filename = path;
+                    } else {
+                        callObj.pathname = path;
+                    }
+
+                    let data = await this.module.core.callAPI(moduleID, "load_plugin", callObj);
+                    if (data.exist) {
+                        if (data.data && data.data.loaded) {
+                            this.logger.info("core", `Handler ID ${moduleID} (${m.displayName}) initialized plugin ${data.data.pluginName} v${data.data.version} by ${data.data.author} (namespace ${data.data.namespace}).`);
+                            return true;
+                        } else {
+                            this.logger.error("core", `Cannot initialize plugin at ${path} handled by ID ${moduleID}:`, data.data.error ?? data.error);
+                            return false;
+                        }
+                    } else {
+                        this.logger.error("core", `Cannot initialize plugin handled by ID ${moduleID}: Specified module handler (${m.displayName}) is not spec-compliant.`);
+                        return false;
+                    }
+                })());
+            } else {
+                this.logger.error("core", `Cannot initialize plugin handled by ID ${moduleID}: Specified module handler (${m.displayName}) is not a plugin handler.`);
+            }
+        }
+
+        let loadResult = await Promise.all(pArray);
+        this.logger.info("core", `${loadResult.filter(x => x).length} plugin(s) initialized.`);
     }
 
     async initializeInterfaceListener() {
@@ -280,7 +347,7 @@ export default class NCBCore {
                         this.logger.error("core", `Cannot initialize interface ID ${interfaceCfg.id}: Specified module handler (${interfaceCfg.shortName}) is not spec-compliant.`);
                     }
                 } else {
-                    this.logger.error("core", `Cannot initialize interface ID ${interfaceCfg.id}: Specified module handler (${interfaceCfg.shortName}) is not a interface handler.`);    
+                    this.logger.error("core", `Cannot initialize interface ID ${interfaceCfg.id}: Specified module handler (${interfaceCfg.shortName}) is not a interface handler.`);
                 }
             } else {
                 this.logger.error("core", `Cannot initialize interface ID ${interfaceCfg.id}: Specified module handler (${interfaceCfg.shortName}) does not exist.`);
