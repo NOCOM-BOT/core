@@ -50,6 +50,7 @@ export default class NCBCoreModule {
                                     this.core.module
                                 ).map(([moduleID, module]) => ({
                                     moduleID,
+                                    type: module.module,
                                     namespace: module.namespace,
                                     displayname: module.displayName,
                                     running: module.started
