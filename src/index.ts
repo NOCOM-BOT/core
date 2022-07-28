@@ -13,6 +13,7 @@ const defaultCfg: ConfigInterface = {
     listener: [],
     databases: [],
     defaultDatabase: 0,
+    crashOnDefaultDatabaseFail: true,
     moduleConfig: {}
 };
 
@@ -80,9 +81,15 @@ export default class NCBCore {
                 author: string,
                 resolver: string
             }
-        }
+        },
+        defaultDatabase: number,
+        databases: Map<number, string>,
+        persistentData: Map<NCBModule, any>
     } = {
-            plReg: {}
+            plReg: {},
+            defaultDatabase: NaN,
+            databases: new Map(),
+            persistentData: new Map()
         };
     promptChannel = new PromptChannel();
     signalChannel = new SignalChannel();
@@ -234,19 +241,24 @@ export default class NCBCore {
             let m = Object.values(this.module).find(m => m.namespace === databaseCfg.shortName);
             if (m) {
                 if (m.module === "database" && m instanceof NCBModule) {
-                    this.logger.info("core", `Initializing database ID ${databaseCfg.id} in module ${m.moduleID} (${m.displayName})`);
-                    let data = await this.module.core.callAPI(m.moduleID, "connect_db", {
-                        databaseID: databaseCfg.id,
-                        params: databaseCfg.params
-                    });
-                    if (data.exist) {
-                        if (data.data && data.data.success) {
-                            this.logger.info("core", `Database ID ${databaseCfg.id} initialized.`);
+                    if (!this.tempData.databases.has(databaseCfg.id)) {
+                        this.logger.info("core", `Initializing database ID ${databaseCfg.id} in module ${m.moduleID} (${m.displayName})`);
+                        let data = await this.module.core.callAPI(m.moduleID, "connect_db", {
+                            databaseID: databaseCfg.id,
+                            params: databaseCfg.params
+                        });
+                        if (data.exist) {
+                            if (data.data && data.data.success) {
+                                this.logger.info("core", `Database ID ${databaseCfg.id} initialized.`);
+                                this.tempData.databases.set(databaseCfg.id, m.moduleID);
+                            } else {
+                                this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}:`, data.error);
+                            }
                         } else {
-                            this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}:`, data.error);
+                            this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not spec-compliant.`);
                         }
                     } else {
-                        this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not spec-compliant.`);
+                        this.logger.warn("core", `Database ID ${databaseCfg.id} already initialized, skipping...`);
                     }
                 } else {
                     this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) is not a database handler.`);
@@ -254,6 +266,26 @@ export default class NCBCore {
             } else {
                 this.logger.error("core", `Cannot initialize database ID ${databaseCfg.id}: Specified module handler (${databaseCfg.shortName}) does not exist.`);
             }
+        }
+
+        // Test for default database
+        if (!this.tempData.databases.has(this.config.defaultDatabase)) {
+            if (this.config.crashOnDefaultDatabaseFail) {
+                this.logger.critical("core", `Default database cannot be initialized.`);
+                throw new Error("Default database initialization failed.");
+            } else {
+                this.logger.warn("core", `Default database cannot be initialized, selecting lowest ID database as default...`);
+                let lowestID = [...this.tempData.databases.keys()].sort((a, b) => a - b)[0];
+                if (lowestID) {
+                    this.logger.info("core", `Default database selected as ${lowestID}.`);
+                    this.tempData.defaultDatabase = lowestID;
+                } else {
+                    this.logger.critical("core", `No database detected. Please check your config and add a database.`);
+                    throw new Error("Default database initialization failed.");
+                }
+            }
+        } else {
+            this.tempData.defaultDatabase = this.config.defaultDatabase;
         }
     }
 

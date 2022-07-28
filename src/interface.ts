@@ -11,6 +11,7 @@ export interface ConfigInterface {
         name: string
     })[],
     defaultDatabase: number,
+    crashOnDefaultDatabaseFail: boolean,
     moduleConfig: {
         [shortName: string]: any
     }
