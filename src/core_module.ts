@@ -318,6 +318,54 @@ export default class NCBCoreModule {
                                 }
                                 break;
 
+                            // 4.18
+                            case "get_default_db":
+                                {
+                                    returnData = {
+                                        databaseID: this.core.tempData.defaultDatabase,
+                                        resolver: this.core.tempData.databases.get(this.core.tempData.defaultDatabase)
+                                    };
+                                }
+                                break;
+
+                            // 4.19
+                            case "get_db_resolver":
+                                {
+                                    let typedData = data.data as {
+                                        databaseID: number
+                                    }
+
+                                    if (typedData.databaseID) {
+                                        if (this.core.tempData.databases.has(typedData.databaseID)) {
+                                            returnData = {
+                                                resolver: this.core.tempData.databases.get(typedData.databaseID)
+                                            };
+                                        } else {
+                                            throw "Database does not exist";
+                                        }
+                                    } else {
+                                        throw "No database ID specified";
+                                    }
+                                }
+                                break;
+                            
+                            // 4.20
+                            case "get_persistent_data":
+                                {
+                                    returnData = this.core.tempData.persistentData.get(senderModule);
+                                }
+                                break;
+
+                            // 4.21
+                            case "set_persistent_data":
+                                {
+                                    let setD = data.data;
+                                    this.core.tempData.persistentData.set(senderModule, setD);
+
+                                    returnData = true;
+                                }
+                                break;
+
                             default:
                                 exist = false;
                         }
