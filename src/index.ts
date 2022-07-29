@@ -143,7 +143,8 @@ export default class NCBCore {
         try {
             let cfg = JSON.parse(await fs.readFile(path.join(this.profile_directory, "config.json"), { encoding: "utf8" }));
             this.config = await this.applyDefault(cfg, defaultCfg);
-        } catch {
+        } catch (e) {
+            this.logger.warn("core", "Config file not found or is broken, using default config:", e);
             this.config = defaultCfg;
         }
         await fs.writeFile(path.join(this.profile_directory, "config.json"), JSON.stringify(this.config, null, "\t"));
