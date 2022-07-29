@@ -5,10 +5,9 @@ import { Worker } from "node:worker_threads";
 import EventEmitter from "node:events";
 import crypto from "node:crypto";
 import NCBCore from "./index.js";
-import ModuleCommParser from "./module_comm_parser/base.js";
+import type ModuleCommParser from "./module_comm_parser/base.js";
 import { Worker_ModuleCommParser } from "./module_comm_parser/worker.js";
 import { Process_ModuleCommParser } from "./module_comm_parser/process.js";
-import url from "node:url";
 import fs from "node:fs/promises";
 import { ChildProcess, fork } from "node:child_process";
 
@@ -208,9 +207,10 @@ export default class NCBModule extends EventEmitter {
                 while (currentMsg = this.queueMsg.shift()) {
                     if (!this.communicator || !this.started) {
                         this.queueMsg.unshift(currentMsg);
-                        return;
+                        break;
                     } else {
                         this.communicator.send(currentMsg);
+                        this.core.logger.verbose(`module.${this.moduleID}[comm.send]`, currentMsg);
                     }
                 }
 
@@ -407,6 +407,7 @@ export default class NCBModule extends EventEmitter {
                 }
 
                 this.emit("message", data);
+                this.core.logger.verbose(`module.${this.moduleID}[comm.recv]`, data);
             });
         }
     }
