@@ -366,6 +366,13 @@ export default class NCBCoreModule {
                                 }
                                 break;
 
+                            // 4.22
+                            case "get_operator_list":
+                                {
+                                    returnData = this.core.config.operators;
+                                }
+                                break;
+
                             default:
                                 exist = false;
                         }

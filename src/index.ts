@@ -14,7 +14,8 @@ const defaultCfg: ConfigInterface = {
     databases: [],
     defaultDatabase: 0,
     crashOnDefaultDatabaseFail: true,
-    moduleConfig: {}
+    moduleConfig: {},
+    operators: []
 };
 
 class SignalChannel extends EventEmitter { }
@@ -197,6 +198,7 @@ export default class NCBCore {
 
         return Promise.allSettled(c.map(async x => {
             try {
+                x.setConfig(this.config.moduleConfig[x.namespace]);
                 await x.start();
                 this.signalChannel.emit("plugin_load", {
                     id: x.moduleID,

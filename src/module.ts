@@ -47,6 +47,7 @@ export default class NCBModule extends EventEmitter {
     started = false;
 
     communicator?: ModuleCommParser;
+    config: any;
 
     constructor(core: NCBCore, moduleZIPDir: string, tempDataDir: string, moduleID: string) {
         super();
@@ -58,6 +59,10 @@ export default class NCBModule extends EventEmitter {
         this.moduleID = moduleID;
 
         this.zip = new AdmZip(this.moduleDir);
+    }
+
+    setConfig(config: any) {
+        this.config = config;
     }
 
     async start() {
@@ -253,7 +258,8 @@ export default class NCBModule extends EventEmitter {
                 this.communicator.send({
                     type: "handshake",
                     id: this.moduleID,
-                    protocol_version: "1"
+                    protocol_version: "1",
+                    config: this.config
                 });
 
                 let d = await promise;

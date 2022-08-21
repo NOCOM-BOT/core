@@ -14,5 +14,6 @@ export interface ConfigInterface {
     crashOnDefaultDatabaseFail: boolean,
     moduleConfig: {
         [shortName: string]: any
-    }
+    },
+    operators: string[]
 }
