@@ -272,7 +272,7 @@ export default class NCBCore {
         }
 
         // Test for default database
-        if (!this.tempData.databases.has(this.config.defaultDatabase)) {
+        if (!this.tempData.databases.has(Number(this.config.defaultDatabase))) {
             if (this.config.crashOnDefaultDatabaseFail) {
                 this.logger.critical("core", `Default database cannot be initialized.`);
                 throw new Error("Default database initialization failed.");
@@ -280,7 +280,7 @@ export default class NCBCore {
                 this.logger.warn("core", `Default database cannot be initialized, selecting lowest ID database as default...`);
                 let lowestID = [...this.tempData.databases.keys()].sort((a, b) => a - b)[0];
                 if (lowestID) {
-                    this.logger.info("core", `Default database selected as ${lowestID}.`);
+                    this.logger.info("core", `Selected default database is ${lowestID}.`);
                     this.tempData.defaultDatabase = lowestID;
                 } else {
                     this.logger.critical("core", `No database detected. Please check your config and add a database.`);
@@ -288,7 +288,8 @@ export default class NCBCore {
                 }
             }
         } else {
-            this.tempData.defaultDatabase = this.config.defaultDatabase;
+            this.tempData.defaultDatabase = Number(this.config.defaultDatabase);
+            this.logger.info("core", `Selected default database is ${Number(this.config.defaultDatabase)}.`);
         }
     }
 
