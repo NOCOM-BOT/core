@@ -58,6 +58,8 @@ class PromptChannel extends EventEmitter {
 export default class NCBCore {
     static kernelVersion = packageJSON.version;
 
+    _resolveDefaultDB = (id: number) => {};
+
     runInstanceID = "00000000000000000000000000000000";
 
     starting = false;
@@ -85,12 +87,14 @@ export default class NCBCore {
         },
         defaultDatabase: number,
         databases: Map<number, string>,
-        persistentData: Map<NCBModule, any>
+        persistentData: Map<NCBModule, any>,
+        defaultDBPromise: Promise<number>
     } = {
             plReg: {},
             defaultDatabase: NaN,
             databases: new Map(),
-            persistentData: new Map()
+            persistentData: new Map(),
+            defaultDBPromise: new Promise(r => this._resolveDefaultDB = r)
         };
     promptChannel = new PromptChannel();
     signalChannel = new SignalChannel();
@@ -282,6 +286,7 @@ export default class NCBCore {
                 if (lowestID) {
                     this.logger.info("core", `Selected default database is ${lowestID}.`);
                     this.tempData.defaultDatabase = lowestID;
+                    this._resolveDefaultDB(lowestID);
                 } else {
                     this.logger.critical("core", `No database detected. Please check your config and add a database.`);
                     throw new Error("Default database initialization failed.");
@@ -290,6 +295,7 @@ export default class NCBCore {
         } else {
             this.tempData.defaultDatabase = Number(this.config.defaultDatabase);
             this.logger.info("core", `Selected default database is ${Number(this.config.defaultDatabase)}.`);
+            this._resolveDefaultDB(Number(this.config.defaultDatabase));
         }
     }
 

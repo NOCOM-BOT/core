@@ -373,6 +373,14 @@ export default class NCBCoreModule {
                                 }
                                 break;
 
+                            // 4.23
+                            case "wait_for_default_db":
+                                {
+                                    await this.core.tempData.defaultDBPromise;
+                                    returnData = null;
+                                }
+                                break;
+
                             default:
                                 exist = false;
                         }
