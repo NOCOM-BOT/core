@@ -295,7 +295,12 @@ export default class NCBModule extends EventEmitter {
 
             this.starting = true;
             this.started = false;
-            crashRestartFunc();
+            let np = crashRestartFunc();
+            if (np instanceof Promise) {
+                np.catch(e => {
+                    this.core.logger.error(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) failed to restart:`, e);
+                });
+            }
         } else {
             if (crashType === "timeout") {
                 this.core.logger.error(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and has been terminated.`);
