@@ -125,15 +125,17 @@ export default class NCBCore {
             this.initializeInterfaceListener();
             this.starting = false;
             this.running = true;
+            this.signalChannel.emit("start");
         }
     }
 
-    async stop() {
+    async stop(isRestart?: boolean) {
         if (this.running && !this.starting) {
             await this.killModules();
             await this.clearTemp();
 
             this.running = false;
+            this.signalChannel.emit("stop", !!isRestart);
         }
     }
 
@@ -224,7 +226,9 @@ export default class NCBCore {
     async killModules() {
         await Promise.all(Object.values(this.module).map(m => m.stop()));
         for (let mID in this.module) {
-            delete this.module[mID];
+            if (mID !== "core") {
+                delete this.module[mID];
+            }
         }
     }
 

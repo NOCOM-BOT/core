@@ -115,7 +115,8 @@ export default class NCBModule extends EventEmitter {
                     let ex = (async () => {
                         let child = fork(path.join(this.tempDataDir, packageJSON.main), [], {
                             cwd: this.tempDataDir,
-                            silent: true
+                            silent: true,
+                            killSignal: "SIGKILL"
                         });
 
                         await this._handleProcess(child, ex);
@@ -143,7 +144,8 @@ export default class NCBModule extends EventEmitter {
                     let ex = (async () => {
                         let child = fork(path.join(this.tempDataDir, this.json.scriptSrc), [], {
                             cwd: this.tempDataDir,
-                            silent: true
+                            silent: true,
+                            killSignal: "SIGKILL"
                         });
 
                         await this._handleProcess(child, ex);

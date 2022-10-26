@@ -30,7 +30,7 @@ export default class NCBCoreModule {
         this.core = core;
     }
 
-    stop() { };
+    async stop() { };
 
     queueMessage(data: any) {
         (async () => {
@@ -69,7 +69,7 @@ export default class NCBCoreModule {
 
                             // 4.4
                             case "restart_core":
-                                await this.core.stop();
+                                await this.core.stop(true);
                                 await this.core.start();
                                 return;
 
