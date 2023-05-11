@@ -60,7 +60,7 @@ export default class NCBCore {
 
     _resolveDefaultDB = (id: number) => {};
 
-    runInstanceID = "00000000000000000000000000000000";
+    runInstanceID = "00000000-0000-0000-0000-000000000000";
 
     starting = false;
     running = false;
@@ -114,7 +114,7 @@ export default class NCBCore {
     async start() {
         if (!this.starting && !this.running) {
             this.starting = true;
-            this.runInstanceID = crypto.randomBytes(16).toString("hex");
+            this.runInstanceID = crypto.randomUUID();
             await this.ensureProfileDir();
             await this.loadConfig();
             await this.createTemp();
