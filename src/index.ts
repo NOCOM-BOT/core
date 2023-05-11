@@ -133,6 +133,10 @@ export default class NCBCore {
         if (this.running && !this.starting) {
             await this.killModules();
             await this.clearTemp();
+            this.unassignedModuleID = 1;
+            this.module = {
+                core: this.module.core
+            };
 
             this.running = false;
             this.signalChannel.emit("stop", !!isRestart);
@@ -242,9 +246,16 @@ export default class NCBCore {
     }
 
     async clearTemp() {
-        try {
-            await fs.rm(path.join(this.profile_directory, "temp", this.runInstanceID), { recursive: true });
-        } catch { }
+        for (let i = 0; i < 10; i++) {
+            try {
+                await fs.rm(path.join(this.profile_directory, "temp", this.runInstanceID), { recursive: true });
+                return;
+            } catch (e) { 
+                this.logger.error("core", "Failed to clear temp folder:", e);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+        }
+        throw new Error("Cannot clear temp folder.");
     }
 
     async initializeDatabaseModules() {
