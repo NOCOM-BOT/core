@@ -25,8 +25,8 @@ export class Worker_ModuleCommParser extends ModuleCommParser {
         }
     }
 
-    kill() {
-        this.worker.terminate();
+    async kill() {
+        await this.worker.terminate();
         this.killed = true;
     }
 }

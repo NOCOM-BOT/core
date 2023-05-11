@@ -67,8 +67,29 @@ export class STDIO_ModuleCommParser extends ModuleCommParser {
         }
     }
 
-    kill() {
-        this.process.kill("SIGTERM");
+    async kill() {
+        let res = this.process.kill("SIGTERM");
+        if (!res) {
+            this.process.kill("SIGKILL");
+        } else {
+            // wait for process to exit
+            try {
+                await Promise.race([
+                    new Promise<void>(resolve => {
+                        this.process.on("exit", () => {
+                            resolve();
+                        });
+                    }),
+                    new Promise<void>((_, reject) => {
+                        setTimeout(() => {
+                            reject();
+                        }, 10000);
+                    })
+                ]);
+            } catch {
+                this.process.kill("SIGKILL");
+            }
+        }
         this.killed = true;
     }
 
