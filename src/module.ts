@@ -105,9 +105,9 @@ export default class NCBModule extends EventEmitter {
         let packageJSON = JSON.parse(await fs.readFile(path.join(this.tempDataDir, "package.json"), "utf8"));
 
         // Load dependencies
-        this.core.logger.debug(`core[${this.module}]`, "Loading PNPM dependencies...");
+        this.core.logger.debug(`core[${this.namespace}]`, "Loading PNPM dependencies...");
         await loadDependencies(this.tempDataDir);
-        this.core.logger.debug(`core[${this.module}]`, "Loaded dependencies.");
+        this.core.logger.debug(`core[${this.namespace}]`, "Loaded dependencies.");
 
         switch (this.communicationProtocol) {
             case "msgpack":

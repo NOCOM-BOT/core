@@ -27,7 +27,7 @@ if (existsSync(join(__dirname, "..", "..", "node_modules", "pnpm", "bin", "pnpm.
 export function loadDependencies(cwd: string) {
     return new Promise<void>((resolve, reject) => {
         let pnpm: ChildProcess;
-        pnpm = fork(pnpmLocation, ["install"], { cwd, stdio: ["ignore", "pipe", "pipe", "ipc"] });
+        pnpm = fork(pnpmLocation, ["install", "--prefer-offline", "--frozen-lockfile"], { cwd, stdio: ["ignore", "pipe", "pipe", "ipc"] });
 
         let stderr: Buffer[] = [];
         let stdout: Buffer[] = [];
