@@ -401,7 +401,10 @@ export default class NCBModule extends EventEmitter {
             (async () => {
                 for (; ;) {
                     // Issuing a new challenge every 30-60s
+                    if (!this.started) return;
                     await new Promise(r => setTimeout(r, Math.round(Math.random() * 30000) + 30000));
+                    if (!this.started) return;
+
                     if (!abortChallengeClock.signal.aborted && this.communicator) {
                         try {
                             await this._createChallenge();
@@ -410,6 +413,8 @@ export default class NCBModule extends EventEmitter {
                             this._handleCrash("timeout", restartFunc);
                         }
                     }
+
+                    if (!this.started) return;
                 }
             })();
 

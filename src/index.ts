@@ -137,6 +137,14 @@ export default class NCBCore {
             this.module = {
                 core: this.module.core
             };
+            this.unassignedModuleID = 1;
+            this.tempData = {
+                plReg: {},
+                defaultDatabase: NaN,
+                databases: new Map(),
+                persistentData: new Map(),
+                defaultDBPromise: new Promise(r => this._resolveDefaultDB = r)
+            };
 
             this.running = false;
             this.signalChannel.emit("stop", !!isRestart);
