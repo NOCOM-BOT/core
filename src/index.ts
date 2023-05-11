@@ -132,8 +132,8 @@ export default class NCBCore {
     async stop(isRestart?: boolean) {
         if (this.running && !this.starting) {
             await this.killModules();
+            await new Promise(r => setTimeout(r, 1000)); // intentional delay
             await this.clearTemp();
-            this.unassignedModuleID = 1;
             this.module = {
                 core: this.module.core
             };
@@ -251,7 +251,7 @@ export default class NCBCore {
                 await fs.rm(path.join(this.profile_directory, "temp", this.runInstanceID), { recursive: true });
                 return;
             } catch (e) { 
-                this.logger.error("core", "Failed to clear temp folder:", e);
+                this.logger.verbose("core", "Failed to clear temp folder:", e);
                 await new Promise(r => setTimeout(r, 1000));
             }
         }

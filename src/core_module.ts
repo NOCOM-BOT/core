@@ -70,6 +70,7 @@ export default class NCBCoreModule {
                             // 4.4
                             case "restart_core":
                                 await this.core.stop(true);
+                                await new Promise(resolve => setTimeout(resolve, 1000)); // intentional delay
                                 await this.core.start();
                                 return;
 
