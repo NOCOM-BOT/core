@@ -15,8 +15,10 @@ export class Process_ModuleCommParser extends ModuleCommParser {
     }
 
     send(data: any) {
-        if (!this.killed)
+        if (!this.killed) {
             this.process.send(data);
+            this.emit("message_send", data);
+        }
     }
 
     kill() {

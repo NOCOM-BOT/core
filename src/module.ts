@@ -240,6 +240,8 @@ export default class NCBModule extends EventEmitter {
                     })
                 ]);
 
+                promise.catch(() => { }); // empty function to avoid unhandledRejection
+
                 function handleHandshake(data: HandshakeResponseFail | HandshakeResponseSuccess) {
                     if (typeof data === "object") {
                         if (data.type === "handshake_success") {
@@ -290,9 +292,14 @@ export default class NCBModule extends EventEmitter {
 
         if (this.autoRestart) {
             if (crashType === "timeout") {
-                this.core.logger.warn(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and is now restarting...`);
+                this.core.logger.warn(
+                    `module.${this.moduleID}`,
+                    `Module ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and is now restarting...`);
             } else if (crashType === "error") {
-                this.core.logger.warn(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, crashError);
+                this.core.logger.warn(
+                    `module.${this.moduleID}`,
+                    `Module ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, crashError
+                );
             }
 
             this.starting = true;
@@ -300,14 +307,24 @@ export default class NCBModule extends EventEmitter {
             let np = crashRestartFunc();
             if (np instanceof Promise) {
                 np.catch(e => {
-                    this.core.logger.error(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) failed to restart:`, e);
+                    this.core.logger.error(
+                        `module.${this.moduleID}`,
+                        `Module ${this.moduleDir} (at ${this.tempDataDir}) failed to restart:`, e
+                    );
                 });
             }
         } else {
             if (crashType === "timeout") {
-                this.core.logger.error(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and has been terminated.`);
+                this.core.logger.error(
+                    `module.${this.moduleID}`,
+                    `Module ${this.moduleDir} (at ${this.tempDataDir}) failed the challenge (not responding in 30 seconds) and has been terminated.`
+                );
             } else if (crashType === "error") {
-                this.core.logger.error(`module.${this.moduleID}`, `Module ${this.moduleDir} (at ${this.tempDataDir}) crashed:`, crashError);
+                this.core.logger.error(
+                    `module.${this.moduleID}`,
+                    `Module ${this.moduleDir} (at ${this.tempDataDir}) crashed:`,
+                    crashError
+                );
             }
 
             this.starting = this.started = false;
@@ -333,7 +350,7 @@ export default class NCBModule extends EventEmitter {
         });
 
         this._handleData(ex);
-        
+
         // Sending handshake
         return this._handshake();
     }
@@ -405,6 +422,7 @@ export default class NCBModule extends EventEmitter {
                                 data: data.data,
                                 nonce: data.nonce
                             });
+                            this.core.logger.debug(`core`, `APIQ: ${this.moduleID} =[${data.nonce}]=> ${data.call_to}: ${data.call_cmd} (${JSON.stringify(data.data)})`);
                             break;
                         case "api_sendresponse":
                             this.core.module[data.response_to]?.queueMessage({
@@ -415,12 +433,17 @@ export default class NCBModule extends EventEmitter {
                                 error: data.error,
                                 nonce: data.nonce
                             });
+                            this.core.logger.debug(`core`, `APIR: ${this.moduleID} =[${data.nonce}]=> ${data.response_to}: ${data.exist ? "E" : "U"} ${JSON.stringify(data.data)} (${data.error ? data.error : "OK"})`);
                             break;
                     }
                 }
 
                 this.emit("message", data);
                 this.core.logger.verbose(`module.${this.moduleID}[comm.recv]`, data);
+            });
+
+            this.communicator.on("message_send", data => {
+                this.core.logger.verbose(`module.${this.moduleID}[comm.send]`, data);
             });
         }
     }

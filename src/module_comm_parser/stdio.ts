@@ -61,8 +61,10 @@ export class STDIO_ModuleCommParser extends ModuleCommParser {
     }
 
     send(data: any) {
-        if (!this.killed)
+        if (!this.killed) {
+            this.emit("message_send", data);
             this.queueMessage(msgpack.encode(data) as any as Buffer);
+        }
     }
 
     kill() {

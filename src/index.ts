@@ -58,7 +58,7 @@ class PromptChannel extends EventEmitter {
 export default class NCBCore {
     static kernelVersion = packageJSON.version;
 
-    _resolveDefaultDB = (id: number) => {};
+    _resolveDefaultDB = (id: number) => { };
 
     runInstanceID = "00000000-0000-0000-0000-000000000000";
 

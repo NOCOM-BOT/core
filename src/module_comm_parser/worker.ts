@@ -20,6 +20,7 @@ export class Worker_ModuleCommParser extends ModuleCommParser {
 
     send(data: any) {
         if (!this.killed) {
+            this.emit("message_send", data);
             this.worker.postMessage(data);
         }
     }
