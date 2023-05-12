@@ -382,6 +382,18 @@ export default class NCBCoreModule {
                                 }
                                 break;
 
+                            // 4.24
+                            case "get_registered_plugins":
+                                {
+                                    returnData = Object.entries(this.core.tempData.plReg).map(([key, value]) => {
+                                        return {
+                                            namespace: key,
+                                            ...value
+                                        }
+                                    });
+                                }
+                                break;
+
                             default:
                                 exist = false;
                         }
